@@ -25,18 +25,50 @@ public:
           , long style = 0L
           , const wxString& name = L"GLCanvas"
           , const wxPalette& palette = wxNullPalette );
+  ~GLCanvas();
 
+  void UpdateTexture();
+ 
   const math::uvec2& ImageSize() const;
 
 private:
-  // opengl context
+  void Initialize();
+
+  void CreateMeshes();
+  void CreateTextures();
+  void CreateShaders();
+
+  void OnPaint( wxPaintEvent& event );
+  void OnSize( wxSizeEvent& event );
+  void OnMouseMove( wxMouseEvent& event );
+  void OnMouseRightDown( wxMouseEvent& event );
+  void OnMouseRightUp( wxMouseEvent& event );
+  void OnMouseLeftDown( wxMouseEvent& event );
+  void OnMouseLeftUp( wxMouseEvent& event );
+  void OnMouseLeave( wxMouseEvent& event );
+  void OnMouseWheel( wxMouseEvent& event );
+
+  math::vec2 ScreenToWorld( const math::vec2& screenSpacePoint );
+  math::ivec2 WorldToImage( const math::vec2& worldSpacePoint );
+
+private:
   std::unique_ptr<wxGLContext> mContext;
 
-  math::uvec2 mImageSize;
+  math::uvec2 mImageSize; // pixels
+  math::vec2 mQuadSize;   // world
 
-  gl::Camera::uptr mCamera;
-  gl::Mesh::uptr mMesh;
-  gl::PBO::uptr mPBO;
-  gl::Shader::uptr mShader;
-  gl::Texture::uptr mTexture;
+  std::vector<gl::Texture::uptr> mTextures;
+  std::vector<gl::PBO::uptr> mPBOs;
+  std::vector<gl::Shader::uptr> mShaders;
+  std::vector<gl::Mesh::uptr> mMeshes;
+  std::vector<gl::Camera::uptr> mCameras;
+
+  bool mPanningActive;
+  math::vec2 mPreviousMousePosition;
+
+private:
+  GLCanvas( const GLCanvas& ) = delete;
+  GLCanvas( GLCanvas&& ) = delete;
+  GLCanvas& operator = ( const GLCanvas& ) = delete;
+  GLCanvas& operator = ( GLCanvas&& ) = delete;
 };

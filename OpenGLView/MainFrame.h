@@ -14,6 +14,11 @@ public:
   virtual ~MainFrame();
 
 private:
+  void OnStartButton( wxCommandEvent& event );
+  void OnStopButton( wxCommandEvent& event );
+
   GLCanvas::uptr mGLCanvas;
+  wxTextCtrl* mLogTextBox;
+
   rt::RayTracer::uptr mRayTracer;
 };
