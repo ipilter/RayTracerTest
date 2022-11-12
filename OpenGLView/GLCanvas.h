@@ -3,8 +3,15 @@
 #include <gl/glew.h> // before any gl related include
 #include "WxMain.h"
 #include <wx/glcanvas.h>
+
 #include "Common\Math.h"
 #include "Common\Sptr.h"
+
+#include "OpenGL\Camera.h"
+#include "OpenGL\Mesh.h"
+#include "OpenGL\PBO.h"
+#include "OpenGL\Shader.h"
+#include "OpenGL\Texture.h"
 
 class GLCanvas : public wxGLCanvas, public virtual ISptr<GLCanvas>
 {
@@ -26,4 +33,10 @@ private:
   std::unique_ptr<wxGLContext> mContext;
 
   math::uvec2 mImageSize;
+
+  gl::Camera::uptr mCamera;
+  gl::Mesh::uptr mMesh;
+  gl::PBO::uptr mPBO;
+  gl::Shader::uptr mShader;
+  gl::Texture::uptr mTexture;
 };

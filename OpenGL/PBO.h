@@ -3,6 +3,9 @@
 #include "Common\Math.h"
 #include "Common\Sptr.h"
 
+namespace gl
+{
+
 // pixel buffer object
 class PBO : public virtual ISptr<PBO>
 {
@@ -12,8 +15,6 @@ public:
 
   void Allocate( uint32_t byteCount );
 
-  uint32_t Id() const;
-
   void Bind();
   void Unbind();
 
@@ -21,5 +22,7 @@ public:
   void UnmapBuffer();
 
 private:
-  uint32_t mId = 0;
+  uint32_t mId;
 };
+
+}

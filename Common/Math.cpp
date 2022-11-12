@@ -25,25 +25,25 @@ std::ostream& operator << ( std::ostream& stream, const math::uvec2& v )
 
 std::ostream& operator << ( std::ostream& stream, const math::vec2& v )
 {
-  stream << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << "]";
+  stream << std::fixed << std::setprecision( 6 ) << "[" << v.x << ", " << v.y << "]";
   return stream;
 }
 
 std::ostream& operator << ( std::ostream& stream, const math::vec3& v )
 {
-  stream << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << "]";
+  stream << std::fixed << std::setprecision( 6 ) << "[" << v.x << ", " << v.y << ", " << v.z << "]";
   return stream;
 }
 
 std::ostream& operator << ( std::ostream& stream, const math::vec4& v )
 {
-  stream << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << "]";
+  stream << std::fixed << std::setprecision( 6 ) << "[" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << "]";
   return stream;
 }
 
 std::ostream& operator << ( std::ostream& stream, const math::mat4& m )
 {
-  stream << std::fixed << std::setprecision(6) << "[";
+  stream << std::fixed << std::setprecision( 6 ) << "[";
   for ( auto i = 0; i < 4; ++i )
   {
     if ( i != 0 )

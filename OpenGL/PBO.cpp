@@ -2,7 +2,11 @@
 
 #include "PBO.h"
 
+namespace gl
+{
+
 PBO::PBO()
+  : mId( 0 )
 {
   glGenBuffers( 1, &mId );
 }
@@ -15,11 +19,6 @@ PBO::~PBO()
 void PBO::Allocate( uint32_t byteCount )
 {
   glBufferData( GL_PIXEL_UNPACK_BUFFER, byteCount, NULL, GL_DYNAMIC_COPY ); // last param always can be this one ?
-}
-
-uint32_t PBO::Id() const
-{
-  return mId;
 }
 
 void PBO::Bind()
@@ -40,4 +39,6 @@ uint32_t* PBO::MapBuffer()
 void PBO::UnmapBuffer()
 {
   glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER );
+}
+
 }
