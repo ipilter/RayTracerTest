@@ -7,6 +7,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+#include "RenderData.h"
+
 namespace utils
 {
 __device__ uint8_t Component( const uint32_t& color, const uint32_t& idx )
@@ -44,15 +46,18 @@ __global__ void UpdateTextureKernel( uint32_t* rgba, int const width, int const 
   }
 
   const unsigned int offset = x + y * width;
-  rgba[offset] = utils::Color( 255 * ( x / static_cast<double>( width ) )
-                               , 255 * ( y / static_cast<double>( height ) )
-                               , 0 );
+  rgba[offset] = utils::Color( 255, 255, 255 );
+                 //utils::Color( 255 * ( x / static_cast<double>( width ) )
+                 //              , 255 * ( y / static_cast<double>( height ) )
+                 //              , 0 );
+  rgba[0] = 42;
 }
 
-cudaError_t RunUpdateTextureKernel( uint32_t* rgba, int width, int height )
+cudaError_t RunUpdateTextureKernel( rt::RenderData& renderData )
 {
   dim3 threadsPerBlock( 32, 32, 1 );
-  dim3 blocksPerGrid( width / threadsPerBlock.x, height / threadsPerBlock.y, 1 ); // TODO works only with power of 2 texture sizes !!
+  dim3 blocksPerGrid( renderData.mDimensions.x / threadsPerBlock.x
+                      , renderData.mDimensions.y / threadsPerBlock.y, 1 ); // TODO works only with power of 2 texture sizes !!
   if ( blocksPerGrid.x == 0 )
   {
     blocksPerGrid.x = 1;
@@ -67,7 +72,7 @@ cudaError_t RunUpdateTextureKernel( uint32_t* rgba, int width, int height )
   cudaEventCreate( &stop );
 
   cudaEventRecord( start, 0 );
-  UpdateTextureKernel<<<blocksPerGrid, threadsPerBlock>>> ( rgba, width, height );
+  UpdateTextureKernel<<<blocksPerGrid, threadsPerBlock>>> ( renderData.mPixelBuffer, renderData.mDimensions.x, renderData.mDimensions.y );
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop );
 

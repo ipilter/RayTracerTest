@@ -3,7 +3,24 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.32407.337
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RayTracerTest", "wxCudaGL.vcxproj", "{7DB9E978-D770-4252-9669-9F28B70756BE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenGLView", "OpenGLView\OpenGLView.vcxproj", "{41D5253F-E219-4492-9450-5F2795CC0139}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E050BE19-FC7F-4EBF-A238-BD10F2543A09} = {E050BE19-FC7F-4EBF-A238-BD10F2543A09}
+		{678D7634-53A0-4E56-AE7A-E95F55F5CCA0} = {678D7634-53A0-4E56-AE7A-E95F55F5CCA0}
+		{92FD5A36-9521-41F4-B893-26450475B4D6} = {92FD5A36-9521-41F4-B893-26450475B4D6}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RayTracer", "RayTracer\RayTracer.vcxproj", "{E050BE19-FC7F-4EBF-A238-BD10F2543A09}"
+	ProjectSection(ProjectDependencies) = postProject
+		{92FD5A36-9521-41F4-B893-26450475B4D6} = {92FD5A36-9521-41F4-B893-26450475B4D6}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "Common\Common.vcxproj", "{92FD5A36-9521-41F4-B893-26450475B4D6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenGL", "OpenGL\OpenGL.vcxproj", "{678D7634-53A0-4E56-AE7A-E95F55F5CCA0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{92FD5A36-9521-41F4-B893-26450475B4D6} = {92FD5A36-9521-41F4-B893-26450475B4D6}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +28,27 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7DB9E978-D770-4252-9669-9F28B70756BE}.Debug|x64.ActiveCfg = Debug|x64
-		{7DB9E978-D770-4252-9669-9F28B70756BE}.Debug|x64.Build.0 = Debug|x64
-		{7DB9E978-D770-4252-9669-9F28B70756BE}.Release|x64.ActiveCfg = Release|x64
-		{7DB9E978-D770-4252-9669-9F28B70756BE}.Release|x64.Build.0 = Release|x64
+		{41D5253F-E219-4492-9450-5F2795CC0139}.Debug|x64.ActiveCfg = Debug|x64
+		{41D5253F-E219-4492-9450-5F2795CC0139}.Debug|x64.Build.0 = Debug|x64
+		{41D5253F-E219-4492-9450-5F2795CC0139}.Release|x64.ActiveCfg = Release|x64
+		{41D5253F-E219-4492-9450-5F2795CC0139}.Release|x64.Build.0 = Release|x64
+		{E050BE19-FC7F-4EBF-A238-BD10F2543A09}.Debug|x64.ActiveCfg = Debug|x64
+		{E050BE19-FC7F-4EBF-A238-BD10F2543A09}.Debug|x64.Build.0 = Debug|x64
+		{E050BE19-FC7F-4EBF-A238-BD10F2543A09}.Release|x64.ActiveCfg = Release|x64
+		{E050BE19-FC7F-4EBF-A238-BD10F2543A09}.Release|x64.Build.0 = Release|x64
+		{92FD5A36-9521-41F4-B893-26450475B4D6}.Debug|x64.ActiveCfg = Debug|x64
+		{92FD5A36-9521-41F4-B893-26450475B4D6}.Debug|x64.Build.0 = Debug|x64
+		{92FD5A36-9521-41F4-B893-26450475B4D6}.Release|x64.ActiveCfg = Release|x64
+		{92FD5A36-9521-41F4-B893-26450475B4D6}.Release|x64.Build.0 = Release|x64
+		{678D7634-53A0-4E56-AE7A-E95F55F5CCA0}.Debug|x64.ActiveCfg = Debug|x64
+		{678D7634-53A0-4E56-AE7A-E95F55F5CCA0}.Debug|x64.Build.0 = Debug|x64
+		{678D7634-53A0-4E56-AE7A-E95F55F5CCA0}.Release|x64.ActiveCfg = Release|x64
+		{678D7634-53A0-4E56-AE7A-E95F55F5CCA0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {41C75F1F-306B-4B17-86E7-D246720FBA50}
+		SolutionGuid = {FD93A8C7-F9E0-48DE-A95F-011D0B6AC877}
 	EndGlobalSection
 EndGlobal

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "..\Sptr.h"
-#include "..\OpenGL\PixelBufferObject.h"
+#include "Common\Sptr.h"
+#include "RenderData.h"
 
 namespace rt
 {
@@ -10,7 +10,7 @@ class RayTracer : public ISptr<RayTracer>
 {
 public:
   RayTracer();
-  void Trace( gl::PixelBufferObject::sptr& pbo, const math::uvec2& pixelsSize );
+  void Trace( rt::RenderData& renderData );
 
 private:
 };

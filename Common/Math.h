@@ -2,6 +2,8 @@
 
 #include <iomanip>
 
+// TODO: glm in CUDA emits tonns of warngings about annotated defaulted/deleted methds.. 
+//       warning supressed in CUDA props
 #define GLM_FORCE_XYZW_ONLY
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

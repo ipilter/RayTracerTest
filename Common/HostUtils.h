@@ -55,27 +55,29 @@ inline T Clamp( const T a, const T b, const T v )
 }
 
 template<typename T>
-inline void Write_t( std::ofstream& stream, const T& t )
+inline std::ofstream& Write_t( std::ofstream& stream, const T& t )
 {
   stream.write( reinterpret_cast<const char*>( &t ), sizeof( T ) );
+  return stream;
 }
 
 template<>
-inline void Write_t( std::ofstream& stream, const std::string& str )
+inline std::ofstream& Write_t( std::ofstream& stream, const std::string& str )
 {
-  size_t count( str.length() );
-  Write_t( stream, count );
-  stream.write( str.c_str(), count );
+  Write_t( stream, str.length() );
+  stream.write( str.c_str(), str.length() );
+  return stream;
 }
 
 template<typename T>
-inline void Read_t( std::ifstream& stream, T& t )
+inline std::ifstream& Read_t( std::ifstream& stream, T& t )
 {
   stream.read( reinterpret_cast<char*> ( &t ), sizeof( T ) );
+  return stream;
 }
 
 template<>
-inline void Read_t( std::ifstream& stream, std::string& str )
+inline std::ifstream& Read_t( std::ifstream& stream, std::string& str )
 {
   size_t count( 0 );
   Read_t( stream, count );
@@ -86,6 +88,7 @@ inline void Read_t( std::ifstream& stream, std::string& str )
 
   char dummy( 0 );
   Read_t( stream, dummy );
+  return stream;
 }
 
 inline uint8_t Component( const uint32_t& color, const uint32_t& idx )
