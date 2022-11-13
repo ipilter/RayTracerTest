@@ -31,12 +31,17 @@ void PBO::Unbind()
   glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 }
 
-uint32_t* PBO::MapBuffer()
+uint32_t PBO::Id() const
+{
+  return mId;
+}
+
+uint32_t* PBO::MapPboBuffer()
 {
   return reinterpret_cast<uint32_t*>( glMapBuffer( GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY ) );
 }
 
-void PBO::UnmapBuffer()
+void PBO::UnMapPboBuffer()
 {
   glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER );
 }

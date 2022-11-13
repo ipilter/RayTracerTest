@@ -47,12 +47,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\dependencies\glew\2.1.0\include\;..\..\dependencies\includes\;$(OutDir)includes;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\dependencies\glew\2.1.0\include\;..\..\dependencies\includes\;$(OutDir)includes;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\..\dependencies\glew\2.1.0\lib\Release\x64\;$(OutDir)lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\..\dependencies\glew\2.1.0\include\;..\..\dependencies\includes\;$(OutDir)includes;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\dependencies\glew\2.1.0\include\;..\..\dependencies\includes\;$(OutDir)includes;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\..\dependencies\glew\2.1.0\lib\Release\x64\;$(OutDir)lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -71,7 +71,10 @@
       <AdditionalDependencies>Common.lib;RayTracer.lib;OpenGL.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist $(OutDir)glew32.dll copy "D:\HomeWork\Projects\C++\dependencies\stu\glew\2.1.0\bin\Release\x64\glew32.dll" "$(OutDir)"</Command>
+      <Command>if not exist $(OutDir)glew32.dll copy "D:\HomeWork\Projects\C++\dependencies\stu\glew\2.1.0\bin\Release\x64\glew32.dll" "$(OutDir)"
+if not exist $(OutDir)View.vert copy "$(ProjectDir)View.vert" "$(OutDir)"
+if not exist $(OutDir)View.frag copy "$(ProjectDir)View.frag" "$(OutDir)"
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -94,7 +97,10 @@
       <AdditionalDependencies>Common.lib;RayTracer.lib;OpenGL.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist $(OutDir)glew32.dll copy "D:\HomeWork\Projects\C++\dependencies\stu\glew\2.1.0\bin\Release\x64\glew32.dll" "$(OutDir)"</Command>
+      <Command>if not exist $(OutDir)glew32.dll copy "D:\HomeWork\Projects\C++\dependencies\stu\glew\2.1.0\bin\Release\x64\glew32.dll" "$(OutDir)"
+if not exist $(OutDir)View.vert copy "$(ProjectDir)View.vert" "$(OutDir)"
+if not exist $(OutDir)View.frag copy "$(ProjectDir)View.frag" "$(OutDir)"
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -108,6 +114,10 @@
     <ClInclude Include="GLCanvas.h" />
     <ClInclude Include="MainFrame.h" />
     <ClInclude Include="WxMain.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="View.frag" />
+    <None Include="View.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

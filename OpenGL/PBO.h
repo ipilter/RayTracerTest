@@ -18,8 +18,10 @@ public:
   void Bind();
   void Unbind();
 
-  uint32_t* MapBuffer();
-  void UnmapBuffer();
+  uint32_t Id() const;
+
+  uint32_t* MapPboBuffer();
+  void UnMapPboBuffer();
 
 private:
   uint32_t mId;

@@ -26,6 +26,9 @@
     <ClInclude Include="RenderData.h">
       <Filter>Header Filkes</Filter>
     </ClInclude>
+    <ClInclude Include="Utils.cuh">
+      <Filter>Kernel</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RayTracer.cpp">

@@ -109,6 +109,7 @@
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Utils.cuh" />
     <ClInclude Include="Kernel.cuh" />
     <ClInclude Include="RayTracer.h" />
     <ClInclude Include="RenderData.h" />

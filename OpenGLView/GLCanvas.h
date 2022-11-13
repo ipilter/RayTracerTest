@@ -1,8 +1,10 @@
 #pragma once
 
+#include <map>
 #include <gl/glew.h> // before any gl related include
 #include "WxMain.h"
 #include <wx/glcanvas.h>
+#include <cuda_gl_interop.h>
 
 #include "Common\Math.h"
 #include "Common\Sptr.h"
@@ -28,15 +30,28 @@ public:
   ~GLCanvas();
 
   void UpdateTexture();
- 
   const math::uvec2& ImageSize() const;
+
+  uint32_t* GetRenderTarget(); // TODO: force Release when render is done on this target
+  void ReleaseRenderTarget();
 
 private:
   void Initialize();
-
   void CreateMeshes();
   void CreateTextures();
   void CreateShaders();
+  void CreateView();
+
+  math::vec2 ScreenToWorld( const math::vec2& screenSpacePoint );
+  math::ivec2 WorldToImage( const math::vec2& worldSpacePoint );
+
+  // CudaGL interop
+  void RegisterCudaResource( const gl::PBO::uptr& pbo );
+  void UnRegisterCudaResource( const gl::PBO::uptr& pbo );
+
+  void MapCudaResource( const gl::PBO::uptr& pbo );
+  void UnMapCudaResource( const gl::PBO::uptr& pbo );
+  uint32_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
 
   void OnPaint( wxPaintEvent& event );
   void OnSize( wxSizeEvent& event );
@@ -48,10 +63,6 @@ private:
   void OnMouseLeave( wxMouseEvent& event );
   void OnMouseWheel( wxMouseEvent& event );
 
-  math::vec2 ScreenToWorld( const math::vec2& screenSpacePoint );
-  math::ivec2 WorldToImage( const math::vec2& worldSpacePoint );
-
-private:
   std::unique_ptr<wxGLContext> mContext;
 
   math::uvec2 mImageSize; // pixels
@@ -63,10 +74,11 @@ private:
   std::vector<gl::Mesh::uptr> mMeshes;
   std::vector<gl::Camera::uptr> mCameras;
 
+  std::map<uint32_t, cudaGraphicsResource_t> mPboCudaResourceTable;
+
   bool mPanningActive;
   math::vec2 mPreviousMousePosition;
 
-private:
   GLCanvas( const GLCanvas& ) = delete;
   GLCanvas( GLCanvas&& ) = delete;
   GLCanvas& operator = ( const GLCanvas& ) = delete;

@@ -19,6 +19,8 @@ private:
 
   GLCanvas::uptr mGLCanvas;
   wxTextCtrl* mLogTextBox;
+  wxTextCtrl* mWidthEdit;
+  wxTextCtrl* mHeightEdit;
 
   rt::RayTracer::uptr mRayTracer;
 };

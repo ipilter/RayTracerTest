@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include "GLCanvas.h"
+
 #include "Common\Logger.h"
 #include "Common\HostUtils.h"
 
@@ -22,12 +23,10 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
   try
   {
     Initialize();
-
     CreateMeshes();
     CreateShaders();
     CreateTextures();
-
-    mCameras.push_back( std::make_unique<gl::Camera>( math::vec3( -mQuadSize.x / 2.0, -mQuadSize.y / 2.0, 0.0 ) ) );
+    CreateView();
   }
   catch ( const std::exception& e )
   {
@@ -38,12 +37,17 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
 GLCanvas::~GLCanvas()
 {
   SetCurrent( *mContext );
+  for ( const auto& pbo : mPBOs )
+  {
+    UnRegisterCudaResource( pbo );
+  }
 }
 
 const math::uvec2& GLCanvas::ImageSize() const
 {
   return mImageSize;
 }
+
 void GLCanvas::UpdateTexture()
 {
   try
@@ -67,6 +71,17 @@ void GLCanvas::UpdateTexture()
     std::stringstream ss;
     ss << "unknown Step error: ";
   }
+}
+
+uint32_t* GLCanvas::GetRenderTarget()
+{
+  MapCudaResource( mPBOs.front() );
+  return GetMappedCudaPointer( mPBOs.front() );
+}
+
+void GLCanvas::ReleaseRenderTarget()
+{
+  UnMapCudaResource( mPBOs.front() );
 }
 
 void GLCanvas::Initialize()
@@ -103,36 +118,34 @@ void GLCanvas::Initialize()
   glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
 
   // Cuda
-  //int gpuCount = 0;
-  //cudaError_t error_test = cudaGetDeviceCount( &gpuCount );
-  //if ( error_test != cudaSuccess )
-  //{
-  //  dynamic_cast<MainFrame*>( GetParent()->GetParent() )->AddLogMessage( "cudaGetDeviceCount failed" );
-  //  return;
-  //}
+  int gpuCount = 0;
+  cudaError_t error_test = cudaGetDeviceCount( &gpuCount );
+  if ( error_test != cudaSuccess || gpuCount < 1 )
+  {
+    throw std::exception( "cudaGetDeviceCount failed" );
+  }
 
-  //cudaDeviceProp prop = { 0 };
-  //int gpuId = 0;
-  //error_test = cudaGetDeviceProperties( &prop, gpuId );
-  //if ( error_test != cudaSuccess )
-  //{
-  //  dynamic_cast<MainFrame*>( GetParent()->GetParent() )->AddLogMessage( "cudaGetDeviceProperties failed" );
-  //  return;
-  //}
+  cudaDeviceProp prop = { 0 };
+  int gpuId = 0;
+  error_test = cudaGetDeviceProperties( &prop, gpuId );
+  if ( error_test != cudaSuccess )
+  {
+    throw std::exception( "cudaGetDeviceProperties failed" );
+  }
 
-  //error_test = cudaGLSetGLDevice( gpuId );
-  //if ( error_test != cudaSuccess )
-  //{
-  //  return;
-  //}
+  error_test = cudaGLSetGLDevice( gpuId );
+  if ( error_test != cudaSuccess )
+  {
+    throw std::exception( "cudaGLSetGLDevice failed" );
+  }
 }
 
 void GLCanvas::CreateMeshes()
 {
   const std::vector<float> vertices = { 0.0f,          0.0f,        0.0f, 1.0f // vtx bl
-    , mQuadSize.x, 0.0f,        1.0f, 1.0f // vtx br
-    , 0.0f,        mQuadSize.y, 0.0f, 0.0f // vtx tl
-    , mQuadSize.x, mQuadSize.y, 1.0f, 0.0f // vtx tr
+                                        , mQuadSize.x, 0.0f,        1.0f, 1.0f // vtx br
+                                        , 0.0f,        mQuadSize.y, 0.0f, 0.0f // vtx tl
+                                        , mQuadSize.x, mQuadSize.y, 1.0f, 0.0f // vtx tr
   };
 
   const std::vector<uint32_t> indices = { 0, 1, 2,  1, 3, 2 };
@@ -158,14 +171,14 @@ void GLCanvas::CreateTextures()
   mPBOs.push_back( std::make_unique<gl::PBO>() );
   mPBOs.back()->Bind();
   mPBOs.back()->Allocate( byteCount );
-  //mPBOs.back()->RegisterCudaResource();
+  RegisterCudaResource( mPBOs.back() );
 
-  // init PBO data with zero
-  //{
-  //  uint32_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
-  //  std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, 0 );
-  //  mPBOs.back()->UnmapPboBuffer();
-  //}
+  // init PBO data
+  {
+    uint32_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
+    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, 0xFFADC6C6 ); // 0xAABBGGRR
+    mPBOs.back()->UnMapPboBuffer();
+  }
 
   // create texture from PBO pixels
   mTextures.back()->Bind();
@@ -182,10 +195,15 @@ void GLCanvas::CreateTextures()
 void GLCanvas::CreateShaders()
 {
   // TODO: parametrize hardcoded shader file paths
-  const std::string vertexShaderSrc( util::ReadTextFile( "shader.vert" ) );
-  const std::string fragentShaderSrc( util::ReadTextFile( "shader.frag" ) );
+  const std::string vertexShaderSrc( util::ReadTextFile( "View.vert" ) );
+  const std::string fragentShaderSrc( util::ReadTextFile( "View.frag" ) );
 
   mShaders.push_back( std::make_unique<gl::Shader>( vertexShaderSrc, fragentShaderSrc ) );
+}
+
+void GLCanvas::CreateView()
+{
+  mCameras.push_back( std::make_unique<gl::Camera>( math::vec3( -mQuadSize.x / 2.0, -mQuadSize.y / 2.0, 0.0 ) ) );
 }
 
 math::vec2 GLCanvas::ScreenToWorld( const math::vec2& screen )
@@ -213,13 +231,63 @@ math::ivec2 GLCanvas::WorldToImage( const math::vec2& worldSpacePoint )
   return math::ivec2( glm::floor( x ), glm::floor( y ) );
 }
 
+void GLCanvas::RegisterCudaResource( const gl::PBO::uptr& pbo )
+{
+  auto it = mPboCudaResourceTable.insert( std::make_pair( pbo->Id(), cudaGraphicsResource_t( 0 ) ) );
+  
+  cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsNone );
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( "cudaGraphicsGLRegisterBuffer failed" );
+  }
+}
+
+void GLCanvas::UnRegisterCudaResource( const gl::PBO::uptr& pbo )
+{
+  cudaError_t err = cudaGraphicsUnregisterResource( mPboCudaResourceTable[pbo->Id()] );
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( "cudaGraphicsUnregisterResource failed" );
+  }
+}
+
+void GLCanvas::MapCudaResource( const gl::PBO::uptr& pbo )
+{
+  cudaError_t err = cudaGraphicsMapResources( 1, &mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( "cudaGraphicsMapResources failed" );
+  }
+}
+
+void GLCanvas::UnMapCudaResource( const gl::PBO::uptr& pbo )
+{
+  cudaError_t err = cudaGraphicsUnmapResources( 1, &mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( "cudaGraphicsUnmapResources failed" );
+  }
+}
+
+uint32_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
+{
+  uint32_t* ptr = nullptr;
+  size_t mapped_size = 0;
+  cudaError_t err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &ptr ), &mapped_size, mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( "cudaGraphicsResourceGetMappedPointer failed" );
+  }
+  return ptr;
+}
+
 void GLCanvas::OnPaint( wxPaintEvent& /*event*/ )
 {
   // reset
   SetCurrent( *mContext );
 
   // clear frame
-  glClearColor( 0.05f, 0.05f, 0.05f, 1.0f );
+  glClearColor( 0.15f, 0.15f, 0.15f, 1.0f );
   glClear( GL_COLOR_BUFFER_BIT );
 
   // apply current material
