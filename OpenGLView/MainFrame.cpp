@@ -2,6 +2,7 @@
 
 #include "MainFrame.h"
 #include "RayTracer\RayTracer.h"
+#include "Common\HostUtils.h"
 
 MainFrame::MainFrame( wxWindow* parent
                       , std::wstring title
@@ -19,8 +20,10 @@ MainFrame::MainFrame( wxWindow* parent
                                 , wxDefaultPosition
                                 , wxDefaultSize
                                 , wxTE_MULTILINE );
-  mGLCanvas = std::make_unique<GLCanvas>( math::uvec2( static_cast<uint32_t>( 1920/100 )
-                                                       , static_cast<uint32_t>( 1080/100 ) ), mainPanel, wxID_ANY ); // glm::pow( 2, 4 )
+
+  const math::uvec2 imageSize( static_cast<uint32_t>( 3840 / 100 )
+                               , static_cast<uint32_t>( 2160 / 100 ) );
+  mGLCanvas = std::make_unique<GLCanvas>( imageSize, mainPanel, wxID_ANY );
 
   wxBoxSizer* mainSizer( new wxBoxSizer( wxVERTICAL ) );
   mainSizer->Add( mGLCanvas.get(), 90, wxEXPAND );
@@ -28,25 +31,28 @@ MainFrame::MainFrame( wxWindow* parent
   mainPanel->SetSizer( mainSizer );
 
   wxPanel* btnPanel( new wxPanel( this, wxID_ANY ) );
-  wxButton* startBtn( new wxButton( btnPanel, wxID_ANY, "Start" ) );
+  wxButton* resetBtn( new wxButton( btnPanel, wxID_ANY, "Resize" ) );
+  wxButton* startBtn( new wxButton( btnPanel, wxID_ANY, "Render" ) );
   wxButton* stopBtn( new wxButton( btnPanel, wxID_ANY, "Stop" ) );
 
   mWidthEdit = new wxTextCtrl( btnPanel, wxID_ANY );
-  mWidthEdit->SetValue( "1024" );
+  mWidthEdit->SetValue( util::ToString( imageSize.x ) );
 
   mHeightEdit = new wxTextCtrl( btnPanel, wxID_ANY );
-  mHeightEdit->SetValue( "1024" );
+  mHeightEdit->SetValue( util::ToString( imageSize.y ) );
 
   mLogTextBox->SetBackgroundColour( wxColor( 125, 125, 125 ) );
   mLogTextBox->SetForegroundColour( wxColor( 200, 200, 200 ) );
   btnPanel->SetBackgroundColour( wxColor( 111, 111, 111 ) );
 
-  startBtn->Bind( wxEVT_COMMAND_BUTTON_CLICKED, &MainFrame::OnStartButton, this );
+  resetBtn->Bind( wxEVT_COMMAND_BUTTON_CLICKED, &MainFrame::OnResizeButton, this );
+  startBtn->Bind( wxEVT_COMMAND_BUTTON_CLICKED, &MainFrame::OnRenderButton, this );
   stopBtn->Bind( wxEVT_COMMAND_BUTTON_CLICKED, &MainFrame::OnStopButton, this );
 
   wxBoxSizer* btnSizer( new wxBoxSizer( wxVERTICAL ) );
   btnSizer->Add( mWidthEdit, 0, wxEXPAND );
   btnSizer->Add( mHeightEdit, 0, wxEXPAND );
+  btnSizer->Add( resetBtn, 0, wxEXPAND );
   btnSizer->Add( startBtn, 0, wxEXPAND );
   btnSizer->Add( stopBtn, 0, wxEXPAND );
   btnPanel->SetSizer( btnSizer );
@@ -61,13 +67,26 @@ MainFrame::MainFrame( wxWindow* parent
 MainFrame::~MainFrame()
 {}
 
-void MainFrame::OnStartButton( wxCommandEvent& /*event*/ )
+void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
 {
-  rt::RenderData renderData( mGLCanvas->GetRenderTarget(), mGLCanvas->ImageSize() );
-  mRayTracer->Trace( renderData );
-  mGLCanvas->ReleaseRenderTarget(); // TODO not safe, do better
+  // Apply new settings
+  const math::uvec2 imageSize( util::FromString<uint32_t>( static_cast<const char*>( mWidthEdit->GetValue().utf8_str() ) )
+                               , util::FromString<uint32_t>( static_cast<const char*>( mHeightEdit->GetValue().utf8_str() ) ) );
+  mGLCanvas->Resize( imageSize );
+  
+  // Rerender frame with the new settings
+  mRayTracer->Trace( mGLCanvas->GetRenderTarget(), mGLCanvas->ImageSize() );
+  mGLCanvas->ReleaseRenderTarget(); // TODO not safe, do better to sync this with GetRenderTarget call
+  
+  mGLCanvas->Update();
+}
 
-  mGLCanvas->UpdateTexture();
+void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
+{
+  mRayTracer->Trace( mGLCanvas->GetRenderTarget(), mGLCanvas->ImageSize() );
+  mGLCanvas->ReleaseRenderTarget(); // TODO not safe, do better to sync this with GetRenderTarget call
+
+  mGLCanvas->Update();
 }
 
 void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )

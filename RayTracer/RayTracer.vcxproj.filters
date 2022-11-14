@@ -23,18 +23,21 @@
     <ClInclude Include="RayTracer.h">
       <Filter>Header Filkes</Filter>
     </ClInclude>
-    <ClInclude Include="RenderData.h">
-      <Filter>Header Filkes</Filter>
-    </ClInclude>
     <ClInclude Include="Utils.cuh">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.cuh">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="ThinLensCamera.cuh">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderData.cuh">
       <Filter>Kernel</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RayTracer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,16 +1,5 @@
 #include "Math.h"
 
-namespace math
-{
-
-float rad( const float deg )
-{
-  constexpr float factor = cPi / 180.0f;
-  return deg * factor;
-}
-
-}
-
 std::ostream& operator << ( std::ostream& stream, const math::ivec2& v )
 {
   stream << "[" << v.x << ", " << v.y << "]";

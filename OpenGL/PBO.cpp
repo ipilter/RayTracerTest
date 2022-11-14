@@ -16,7 +16,7 @@ PBO::~PBO()
   glDeleteBuffers( 1, &mId );
 }
 
-void PBO::Allocate( uint32_t byteCount )
+void PBO::Allocate( const uint32_t byteCount )
 {
   glBufferData( GL_PIXEL_UNPACK_BUFFER, byteCount, NULL, GL_DYNAMIC_COPY ); // last param always can be this one ?
 }
@@ -31,7 +31,7 @@ void PBO::Unbind()
   glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 }
 
-uint32_t PBO::Id() const
+const uint32_t& PBO::Id() const
 {
   return mId;
 }

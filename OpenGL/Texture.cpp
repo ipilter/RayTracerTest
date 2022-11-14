@@ -93,6 +93,7 @@ uint32_t Texture::BytesPerChannel() const
     default:
     {
       logger::Logger::Instance() << "unknown pixel type in Texture::BytesPerChannel: " << pixelType;
+      return 0;
     }
   }
 }

@@ -29,7 +29,9 @@ public:
           , const wxPalette& palette = wxNullPalette );
   ~GLCanvas();
 
-  void UpdateTexture();
+  void Resize( const math::uvec2& imageSize );
+
+  void Update();
   const math::uvec2& ImageSize() const;
 
   uint32_t* GetRenderTarget(); // TODO: force Release when render is done on this target

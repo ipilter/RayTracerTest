@@ -14,7 +14,8 @@ public:
   virtual ~MainFrame();
 
 private:
-  void OnStartButton( wxCommandEvent& event );
+  void OnResizeButton( wxCommandEvent& event );
+  void OnRenderButton( wxCommandEvent& event );
   void OnStopButton( wxCommandEvent& event );
 
   GLCanvas::uptr mGLCanvas;

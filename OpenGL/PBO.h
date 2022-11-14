@@ -13,12 +13,12 @@ public:
   PBO();
   ~PBO();
 
-  void Allocate( uint32_t byteCount );
+  void Allocate( const uint32_t byteCount );
 
   void Bind();
   void Unbind();
 
-  uint32_t Id() const;
+  const uint32_t& Id() const;
 
   uint32_t* MapPboBuffer();
   void UnMapPboBuffer();

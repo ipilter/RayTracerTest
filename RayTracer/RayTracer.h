@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Common\Math.h"
 #include "Common\Sptr.h"
-#include "RenderData.h"
 
 namespace rt
 {
@@ -10,7 +10,7 @@ class RayTracer : public ISptr<RayTracer>
 {
 public:
   RayTracer();
-  void Trace( rt::RenderData& renderData );
+  void Trace( uint32_t* ptr, const math::uvec2& size );
 
 private:
 };

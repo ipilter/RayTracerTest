@@ -24,8 +24,8 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
   {
     Initialize();
     CreateMeshes();
-    CreateShaders();
     CreateTextures();
+    CreateShaders();
     CreateView();
   }
   catch ( const std::exception& e )
@@ -43,12 +43,33 @@ GLCanvas::~GLCanvas()
   }
 }
 
+void GLCanvas::Resize( const math::uvec2& imageSize )
+{
+  // TODO: Validate if cleanup is proper
+  mImageSize = imageSize;
+  mQuadSize = math::vec2( 1.0 * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0 );
+
+  mMeshes.clear();
+  CreateMeshes();
+
+  for ( const auto& pbo : mPBOs )
+  {
+    UnRegisterCudaResource( pbo );
+  }
+  mPboCudaResourceTable.clear();
+
+  mTextures.clear();
+  mPBOs.clear();
+
+  CreateTextures();
+}
+
 const math::uvec2& GLCanvas::ImageSize() const
 {
   return mImageSize;
 }
 
-void GLCanvas::UpdateTexture()
+void GLCanvas::Update()
 {
   try
   {
@@ -176,7 +197,7 @@ void GLCanvas::CreateTextures()
   // init PBO data
   {
     uint32_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
-    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, 0xFFADC6C6 ); // 0xAABBGGRR
+    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, util::Color( 10, 10, 10 ) );
     mPBOs.back()->UnMapPboBuffer();
   }
 
@@ -234,11 +255,13 @@ math::ivec2 GLCanvas::WorldToImage( const math::vec2& worldSpacePoint )
 void GLCanvas::RegisterCudaResource( const gl::PBO::uptr& pbo )
 {
   auto it = mPboCudaResourceTable.insert( std::make_pair( pbo->Id(), cudaGraphicsResource_t( 0 ) ) );
-  
-  cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsNone );
-  if ( err != cudaSuccess )
+  if ( it.second )
   {
-    throw std::runtime_error( "cudaGraphicsGLRegisterBuffer failed" );
+    cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsNone );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( "cudaGraphicsGLRegisterBuffer failed" );
+    }
   }
 }
 

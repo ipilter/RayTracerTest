@@ -3,6 +3,6 @@
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include "RenderData.h"
+#include "RenderData.cuh"
 
-cudaError_t RunUpdateTextureKernel( rt::RenderData& renderData );
+cudaError_t RunRenderKernel( rt::RenderData& renderData );

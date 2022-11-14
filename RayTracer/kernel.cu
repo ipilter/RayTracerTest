@@ -7,39 +7,44 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#include "RenderData.h"
+#include "RenderData.cuh"
 
 #include "Utils.cuh"
+#include "ThinLensCamera.cuh"
 
-__global__ void UpdateTextureKernel( uint32_t* rgba, int const width, int const height )
+// Note: passing objects must be by value. with ref cuda crashes (cudaGraphicsUnmapResources return illegal address error)
+__global__ void RenderKernel( const rt::RenderData renderData )
 {
-  const uint32_t x( blockIdx.x * blockDim.x + threadIdx.x );
-  const uint32_t y( blockIdx.y * blockDim.y + threadIdx.y );
-  if ( x >= width || y >= height )
+  const math::uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
+  if ( pixel.x >= renderData.mDimensions.x || pixel.y >= renderData.mDimensions.y )
   {
     return;
   }
 
-  const uint32_t offset = x + y * width;
-  rgba[offset] = utils::Color( 255 * ( x / static_cast<float>( width ) )
-                               , 255 * ( y / static_cast<float>( height ) )
-                               , 0 );
+  const rt::Ray ray( renderData.mCamera.getRay( pixel, renderData.mDimensions ) );
+
+  const uint32_t offset( pixel.x + pixel.y * renderData.mDimensions.x );
+  renderData.mPixelBuffer[offset] = utils::Color( 255 * ( glm::abs( ray.direction().x ) )
+                                                  , 255 * ( glm::abs( ray.direction().y ) )
+                                                  , 255 * ( glm::abs( ray.direction().z ) ) );
+
+  renderData.mPixelBuffer[0] = 0xFFFFFFFF;
 }
 
-cudaError_t RunUpdateTextureKernel( rt::RenderData& renderData )
+cudaError_t RunRenderKernel( rt::RenderData& renderData )
 {
   // TODO fast way, do better!
-  dim3 threadsPerBlock( 32, 32, 1 );
-  dim3 blocksPerGrid( static_cast<uint32_t>( glm::ceil( renderData.Dimensions().x / static_cast<float>( threadsPerBlock.x ) ) )
-                      , static_cast<uint32_t>( glm::ceil( renderData.Dimensions().y / static_cast<float>( threadsPerBlock.y ) ) )
-                      , 1 );
+  const dim3 threadsPerBlock( 32, 32, 1 );
+  const dim3 blocksPerGrid( static_cast<uint32_t>( glm::ceil( renderData.mDimensions.x / static_cast<float>( threadsPerBlock.x ) ) )
+                            , static_cast<uint32_t>( glm::ceil( renderData.mDimensions.y / static_cast<float>( threadsPerBlock.y ) ) )
+                            , 1 );
 
   cudaEvent_t start, stop;
   cudaEventCreate( &start );
   cudaEventCreate( &stop );
 
   cudaEventRecord( start, 0 );
-  UpdateTextureKernel<<<blocksPerGrid, threadsPerBlock>>> ( renderData.PixelBuffer(), renderData.Dimensions().x, renderData.Dimensions().y );
+  RenderKernel<<<blocksPerGrid, threadsPerBlock>>> ( renderData );
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop );
 

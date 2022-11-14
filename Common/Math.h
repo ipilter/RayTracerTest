@@ -24,8 +24,6 @@ using mat4 = glm::mat4;
 constexpr float cPi = 3.141592653589793f;
 constexpr float cEps = 1e-9f;
 
-float rad( const float deg );
-
 }
 
 std::ostream& operator << ( std::ostream& stream, const math::ivec2& v );
