@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include "GLCanvas.h"
+#include "ResourceHandler.h"
 
 #include "Common\Logger.h"
 #include "Common\HostUtils.h"
@@ -215,10 +216,8 @@ void GLCanvas::CreateTextures()
 
 void GLCanvas::CreateShaders()
 {
-  // TODO: parametrize hardcoded shader file paths
-  const std::string vertexShaderSrc( util::ReadTextFile( "View.vert" ) );
-  const std::string fragentShaderSrc( util::ReadTextFile( "View.frag" ) );
-
+  const std::string vertexShaderSrc( LoadStringResource( VERTEX_SHADER, TEXTFILE ) );
+  const std::string fragentShaderSrc( LoadStringResource( FRAGMENT_SHADER, TEXTFILE ) );
   mShaders.push_back( std::make_unique<gl::Shader>( vertexShaderSrc, fragentShaderSrc ) );
 }
 

@@ -1,0 +1,4 @@
+#include "Resource.h"
+
+FRAGMENT_SHADER TEXTFILE "View.frag"
+VERTEX_SHADER TEXTFILE "View.vert"
