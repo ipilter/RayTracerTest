@@ -17,78 +17,77 @@ public:
                                       , const float fov // deg
                                       , const float focalLength // m?
                                       , const float aperture )
-    : mCameraTransformation( calculateCameraTransformation( position, target, upGuide ) )
+    : mCameraTransformation( CalculateCameraTransformation( position, target, upGuide ) )
     , mFov( glm::radians( fov ) )
     , mFocalLength( focalLength )
     , mAperture( aperture )
   {}
 
-  __host__ __device__ Ray getRay( const math::uvec2& pixel, const math::uvec2& dimensions ) const
+  __host__ __device__ Ray GetRay( const math::uvec2& pixel, const math::uvec2& dimensions ) const
   {
-    // first calculate the primary ray of the pinhole camera
-    const Ray primary = PinHoleRay( pixel, dimensions );
-    return primary;
-
     // calculate real ray using physical camera properties
     // we assume the lens being positioned at camera position
-
     // https://drive.google.com/file/d/19mAlPb5YO-KDladvo3C8yzyrYmrudPJL/view?pli=1
-    
+
+    // first calculate the primary ray of the pinhole camera
+    const Ray primary = PinHoleRay( pixel, dimensions );
+
     // random vec between 0.0 and aperture -> random pos on lens
     //const math::vec3 randomOffset( math::vec3( rt::randomOnCircle() * mAperture, 0.0 ) );
-    //const math::vec3 focalPoint( position() + mFocalLength * primary.direction() );
+    const math::vec3 randomOffset( math::vec3( math::vec2(0.0, 0.0) * mAperture, 0.0f ) );
+    const math::vec3 focalPoint( Position() + mFocalLength * primary.direction() );
 
-    //const math::vec3 randomLensPoint( position() + randomOffset );
-    //const math::vec3 direction( focalPoint - randomLensPoint );
-    //return Ray( randomLensPoint, direction ); 
+    const math::vec3 randomLensPoint( Position() + randomOffset );
+    const math::vec3 direction( focalPoint - randomLensPoint );
+    return Ray( randomLensPoint, direction ); 
   }
 
-  __host__ __device__ math::vec3 position() const
+  __host__ __device__ math::vec3 Position() const
   {
     return math::vec3( mCameraTransformation[3] );
   }
 
-  __host__ __device__ math::vec3 forward() const
+  __host__ __device__ math::vec3 Forward() const
   {
     return math::vec3( mCameraTransformation[0][2], mCameraTransformation[1][2], mCameraTransformation[2][2] );
   }
 
-  __host__ __device__ math::vec3 up() const
+  __host__ __device__ math::vec3 Up() const
   {
     return math::vec3( mCameraTransformation[0][1], mCameraTransformation[1][1], mCameraTransformation[2][1] );
   }
 
-  __host__ __device__ math::vec3 right() const
+  __host__ __device__ math::vec3 Right() const
   {
     return math::vec3( mCameraTransformation[0][0], mCameraTransformation[1][0], mCameraTransformation[2][0] );
   }
 
-  __host__ __device__ float fov() const
+  __host__ __device__ float Fov() const
   {
     return mFov;
   }
 
-  __host__ __device__ void fov( const float fov )
+  __host__ __device__ void Fov( const float fov )
   {
     mFov = glm::radians( fov );
   }
 
-  __host__ __device__ float aperture() const
+  __host__ __device__ float Aperture() const
   {
     return mAperture;
   }
 
-  __host__ __device__ void aperture( const float f )
+  __host__ __device__ void Aperture( const float f )
   {
     mAperture = f;
   }
 
-  __host__ __device__ float focalLength() const
+  __host__ __device__ float FocalLength() const
   {
     return mFocalLength;
   }
 
-  __host__ __device__ void focalLength( const float l )
+  __host__ __device__ void FocalLength( const float l )
   {
     mFocalLength = l;
   }
@@ -116,7 +115,7 @@ private:
     return Ray( originWS, direction );
   }
 
-  __host__ __device__ static  math::mat4 calculateCameraTransformation( const math::vec3& position
+  __host__ __device__ static  math::mat4 CalculateCameraTransformation( const math::vec3& position
                                                                         , const math::vec3& target
                                                                         , const math::vec3& upGuide )
   {

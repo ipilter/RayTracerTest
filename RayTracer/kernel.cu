@@ -12,7 +12,7 @@
 #include "Utils.cuh"
 #include "ThinLensCamera.cuh"
 
-// Note: passing objects must be by value. with ref cuda crashes (cudaGraphicsUnmapResources return illegal address error)
+// Note: arguments MUST be by value. Make sure they are fast to copy
 __global__ void RenderKernel( const rt::RenderData renderData )
 {
   const math::uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
@@ -21,14 +21,16 @@ __global__ void RenderKernel( const rt::RenderData renderData )
     return;
   }
 
-  const rt::Ray ray( renderData.mCamera.getRay( pixel, renderData.mDimensions ) );
+  // TODO: get n samples instead of one and use their average color
+  const rt::Ray ray( renderData.mCamera.GetRay( pixel, renderData.mDimensions ) );
 
+  // save final pixel color
   const uint32_t offset( pixel.x + pixel.y * renderData.mDimensions.x );
   renderData.mPixelBuffer[offset] = utils::Color( 255 * ( glm::abs( ray.direction().x ) )
                                                   , 255 * ( glm::abs( ray.direction().y ) )
                                                   , 255 * ( glm::abs( ray.direction().z ) ) );
 
-  renderData.mPixelBuffer[0] = 0xFFFFFFFF;
+  //renderData.mPixelBuffer[0] = 0xFFFFFFFF;
 }
 
 cudaError_t RunRenderKernel( rt::RenderData& renderData )
