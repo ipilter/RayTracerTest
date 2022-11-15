@@ -4,7 +4,8 @@
 #include "RayTracer\RayTracer.h"
 #include "Common\HostUtils.h"
 
-MainFrame::MainFrame( wxWindow* parent
+MainFrame::MainFrame( const math::uvec2& imageSize
+                      , wxWindow* parent
                       , std::wstring title
                       , const wxPoint& pos
                       , const wxSize& size )
@@ -21,8 +22,6 @@ MainFrame::MainFrame( wxWindow* parent
                                 , wxDefaultSize
                                 , wxTE_MULTILINE );
 
-  const math::uvec2 imageSize( static_cast<uint32_t>( 3840 / 100 )
-                               , static_cast<uint32_t>( 2160 / 100 ) );
   mGLCanvas = std::make_unique<GLCanvas>( imageSize, mainPanel, wxID_ANY );
 
   wxBoxSizer* mainSizer( new wxBoxSizer( wxVERTICAL ) );

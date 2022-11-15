@@ -12,7 +12,12 @@ public:
   ~App();
 
   virtual bool OnInit();
+  virtual int OnExit();
 
 private:
+  virtual void OnInitCmdLine(wxCmdLineParser& parser);
+  virtual bool OnCmdLineParsed(wxCmdLineParser& parser);
+
   MainFrame::uptr mMainFrame;
+  math::uvec2 mTextureSize;
 };

@@ -104,14 +104,14 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu" />
+    <CudaCompile Include="RenderKernel.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RenderData.cuh" />
     <ClInclude Include="ThinLensCamera.cuh" />
     <ClInclude Include="Ray.cuh" />
     <ClInclude Include="Utils.cuh" />
-    <ClInclude Include="Kernel.cuh" />
+    <ClInclude Include="RenderKernel.cuh" />
     <ClInclude Include="RayTracer.h" />
   </ItemGroup>
   <ItemGroup>

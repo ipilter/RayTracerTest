@@ -12,12 +12,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu">
+    <CudaCompile Include="RenderKernel.cu">
       <Filter>Kernel</Filter>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Kernel.cuh">
+    <ClInclude Include="RenderKernel.cuh">
       <Filter>Kernel</Filter>
     </ClInclude>
     <ClInclude Include="RayTracer.h">

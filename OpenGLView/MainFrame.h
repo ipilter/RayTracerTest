@@ -6,7 +6,8 @@
 class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 {
 public:
-  MainFrame( wxWindow* parent
+  MainFrame( const math::uvec2& imageSize
+             , wxWindow* parent
              , std::wstring title
              , const wxPoint& pos
              , const wxSize& size );

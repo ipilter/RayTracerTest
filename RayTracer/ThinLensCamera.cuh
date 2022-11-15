@@ -30,11 +30,10 @@ public:
     // https://drive.google.com/file/d/19mAlPb5YO-KDladvo3C8yzyrYmrudPJL/view?pli=1
 
     // first calculate the primary ray of the pinhole camera
-    const Ray primary = PinHoleRay( pixel, dimensions );
+    const Ray primary( PinHoleRay( pixel, dimensions ) );
 
     // random vec between 0.0 and aperture -> random pos on lens
-    //const math::vec3 randomOffset( math::vec3( rt::randomOnCircle() * mAperture, 0.0 ) );
-    const math::vec3 randomOffset( math::vec3( math::vec2(0.0, 0.0) * mAperture, 0.0f ) );
+    const math::vec3 randomOffset( math::vec3( utils::RandomOnCircle() * mAperture, 0.0f ) );
     const math::vec3 focalPoint( Position() + mFocalLength * primary.direction() );
 
     const math::vec3 randomLensPoint( Position() + randomOffset );

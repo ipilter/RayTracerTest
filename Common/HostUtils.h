@@ -27,7 +27,7 @@ inline std::string ToString( const T& t )
   return ss.str();
 }
 
-// T can be float or double only!
+// TODO T can be float or double only!
 template<class T>
 inline T Random( T min = 0.0, T max = 1.0 )
 {
