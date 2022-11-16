@@ -4,6 +4,7 @@
 #include "Common\Math.h"
 #include "Ray.cuh"
 #include "Utils.cuh"
+#include "Random.cuh"
 
 namespace rt
 {
@@ -23,7 +24,9 @@ public:
     , mAperture( aperture )
   {}
 
-  __host__ __device__ Ray GetRay( const math::uvec2& pixel, const math::uvec2& dimensions ) const
+  __device__ Ray GetRay( const math::uvec2& pixel
+                                  , const math::uvec2& dimensions
+                                  , Random& random ) const
   {
     // calculate real ray using physical camera properties
     // we assume the lens being positioned at camera position
@@ -33,7 +36,7 @@ public:
     const Ray primary( PinHoleRay( pixel, dimensions ) );
 
     // random vec between 0.0 and aperture -> random pos on lens
-    const math::vec3 randomOffset( math::vec3( utils::RandomOnCircle() * mAperture, 0.0f ) );
+    const math::vec3 randomOffset( math::vec3( random.UnifromOnDisk() * mAperture, 0.0f ) );
     const math::vec3 focalPoint( Position() + mFocalLength * primary.direction() );
 
     const math::vec3 randomLensPoint( Position() + randomOffset );

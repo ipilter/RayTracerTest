@@ -13,24 +13,37 @@
 #include "ThinLensCamera.cuh"
 
 // Note: arguments MUST be by value. Make sure they are fast to copy
-__global__ void RenderKernel( const rt::RenderData renderData )
+__global__ void RenderKernel( rt::RenderData renderData )
 {
-  const math::uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
+  using namespace math;
+
+  const uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
   if ( pixel.x >= renderData.mDimensions.x || pixel.y >= renderData.mDimensions.y )
   {
     return;
   }
 
+  const uint32_t offset( pixel.x + pixel.y * renderData.mDimensions.x );
+  renderData.mRandom.SetOffset( offset );
+
+  vec3 accu = vec3(0.0f);
+  for ( auto s = 0; s < renderData.mSampleCount; ++s )
+  {
+    const rt::Ray ray( renderData.mCamera.GetRay( pixel, renderData.mDimensions, renderData.mRandom ) );
+    accu += ray.direction();
+  }
+  accu /= static_cast<float>( renderData.mSampleCount );
   // TODO: get n samples instead of one and use their average color
-  const rt::Ray ray( renderData.mCamera.GetRay( pixel, renderData.mDimensions ) );
 
   // save final pixel color
-  const uint32_t offset( pixel.x + pixel.y * renderData.mDimensions.x );
-  renderData.mPixelBuffer[offset] = utils::Color( 255 * ( glm::abs( ray.direction().x ) )
-                                                  , 255 * ( glm::abs( ray.direction().y ) )
-                                                  , 255 * ( glm::abs( ray.direction().z ) ) );
+  //renderData.mPixelBuffer[offset] = utils::Color( 255 * ( glm::abs( ray.direction().x ) )
+  //                                                , 255 * ( glm::abs( ray.direction().y ) )
+  //                                                , 255 * ( glm::abs( ray.direction().z ) ) );
+  renderData.mPixelBuffer[offset] = utils::Color( 255 * accu.x
+                                                  , 255 * accu.y
+                                                  , 255 * accu.z );
 
-  //renderData.mPixelBuffer[0] = 0xFFFFFFFF;
+  //renderData.mPixelBuffer[0] = 0xFF0000FF;
 }
 
 cudaError_t RunRenderKernel( rt::RenderData& renderData )

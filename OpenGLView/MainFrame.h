@@ -23,6 +23,10 @@ private:
   wxTextCtrl* mLogTextBox;
   wxTextCtrl* mWidthEdit;
   wxTextCtrl* mHeightEdit;
+  wxTextCtrl* mSampleCountEdit;
+  wxTextCtrl* mFovEdit;
+  wxTextCtrl* mFocalLengthEdit;
+  wxTextCtrl* mApertureEdit;
 
   rt::RayTracer::uptr mRayTracer;
 };

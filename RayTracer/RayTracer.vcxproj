@@ -104,9 +104,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="Random.cu" />
     <CudaCompile Include="RenderKernel.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Random.cuh" />
     <ClInclude Include="RenderData.cuh" />
     <ClInclude Include="ThinLensCamera.cuh" />
     <ClInclude Include="Ray.cuh" />
