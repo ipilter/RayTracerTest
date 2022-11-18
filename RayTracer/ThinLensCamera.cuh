@@ -107,11 +107,11 @@ private:
     const math::vec2 cameraPixel( ( 2.0f * normalizedPixel.x - 1.0f ) * halfHeight * aspectRatio
                                   , ( 1.0f - 2.0f * normalizedPixel.y ) * halfHeight );
 
-    const math::vec3 originCS( 0.0, 0.0, 0.0 );
-    const math::vec3 pixelCS( cameraPixel, -1.0 );
+    const math::vec3 originCS( 0.0f, 0.0f, 0.0f );
+    const math::vec3 pixelCS( cameraPixel, -1.0f );
 
-    const math::vec3 originWS( math::vec3( mCameraTransformation * math::vec4( originCS, 1.0 ) ) );
-    const math::vec3 pixelWS( math::vec3( mCameraTransformation * math::vec4( pixelCS, 1.0 ) ) );
+    const math::vec3 originWS( math::vec3( mCameraTransformation * math::vec4( originCS, 1.0f ) ) );
+    const math::vec3 pixelWS( math::vec3( mCameraTransformation * math::vec4( pixelCS, 1.0f ) ) );
 
     const math::vec3 direction( pixelWS - originWS );
     return Ray( originWS, direction );
@@ -125,10 +125,10 @@ private:
     const math::vec3 right = glm::normalize( glm::cross( upGuide, forward ) );
     const math::vec3 up = glm::cross( forward, right );
 
-    return math::mat4( right.x, up.x, forward.x, 0.0
-                       , right.y, up.y, forward.y, 0.0
-                       , right.z, up.z, forward.z, 0.0
-                       , position.x, position.y, position.z, 1.0 );
+    return math::mat4( right.x, up.x, forward.x, 0.0f
+                       , right.y, up.y, forward.y, 0.0f
+                       , right.z, up.z, forward.z, 0.0f
+                       , position.x, position.y, position.z, 1.0f );
   }
 
   float mFov;

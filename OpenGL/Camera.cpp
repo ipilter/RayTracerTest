@@ -4,8 +4,8 @@ namespace gl
 {
 
 Camera::Camera( const math::vec3& center )
-  : mProjectionMatrix( 1.0 )
-  , mViewMatrix( 1.0 )
+  : mProjectionMatrix( 1.0f )
+  , mViewMatrix( 1.0f )
 {
   Center( center );
 }

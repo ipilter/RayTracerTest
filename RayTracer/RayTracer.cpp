@@ -18,7 +18,7 @@ void RayTracer::Trace( uint32_t* ptr
                        , const float aperture )
 {
   rt::ThinLensCamera camera( math::vec3( 0.0f, 0.0f, 0.0f )
-                             , math::vec3( 1.0f, 0.0f, 1.0f )
+                             , math::vec3( 0.0f, 0.0f, 1.0f )
                              , math::vec3( 0.0f, 1.0f, 0.0f )
                              , fov, focalLength, aperture );
 

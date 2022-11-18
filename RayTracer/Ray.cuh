@@ -9,9 +9,9 @@ namespace rt
 class Ray
 {
 public:
-  __host__ __device__ Ray( const math::vec3& o = math::vec3( 0.0 )
-                  , const math::vec3& d = math::vec3( 0.0 )
-                  , const bool normalizeDirection = true )
+  __host__ __device__ Ray( const math::vec3& o = math::vec3( 0.0f )
+                           , const math::vec3& d = math::vec3( 0.0f )
+                           , const bool normalizeDirection = true )
     : mOrigin( o )
     , mDirection( normalizeDirection ? glm::normalize( d ) : d )
   {}

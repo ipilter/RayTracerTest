@@ -39,6 +39,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   wxStaticText* widthLabel = new wxStaticText( btnPanel, wxID_ANY, "Width" );
   wxBoxSizer* widthSizer( new wxBoxSizer( wxHORIZONTAL ) );
   widthSizer->Add(widthLabel);
+  widthSizer->AddStretchSpacer();
   widthSizer->Add(mWidthEdit);
 
   mHeightEdit = new wxTextCtrl( btnPanel, wxID_ANY );
@@ -46,6 +47,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   wxStaticText* heightLabel = new wxStaticText( btnPanel, wxID_ANY, "Height" );
   wxBoxSizer* heightSizer( new wxBoxSizer( wxHORIZONTAL ) );
   heightSizer->Add(heightLabel);
+  heightSizer->AddStretchSpacer();
   heightSizer->Add(mHeightEdit);
 
   mSampleCountEdit = new wxTextCtrl( btnPanel, wxID_ANY );
@@ -53,6 +55,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   wxStaticText* sampleLabel = new wxStaticText( btnPanel, wxID_ANY, "Samples" );
   wxBoxSizer* sampleSizer( new wxBoxSizer( wxHORIZONTAL ) );
   sampleSizer->Add(sampleLabel);
+  sampleSizer->AddStretchSpacer();
   sampleSizer->Add(mSampleCountEdit);
 
   mFovEdit = new wxTextCtrl( btnPanel, wxID_ANY );
@@ -60,6 +63,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   wxStaticText* fovLabel = new wxStaticText( btnPanel, wxID_ANY, "Fov" );
   wxBoxSizer* fovSizer( new wxBoxSizer( wxHORIZONTAL ) );
   fovSizer->Add(fovLabel);
+  fovSizer->AddStretchSpacer();
   fovSizer->Add(mFovEdit);
 
   mFocalLengthEdit = new wxTextCtrl( btnPanel, wxID_ANY );
@@ -67,6 +71,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   wxStaticText* focalLengthLabel = new wxStaticText( btnPanel, wxID_ANY, "Focal l." );
   wxBoxSizer* focalLengthSizer( new wxBoxSizer( wxHORIZONTAL ) );
   focalLengthSizer->Add(focalLengthLabel);
+  focalLengthSizer->AddStretchSpacer();
   focalLengthSizer->Add(mFocalLengthEdit);
 
   mApertureEdit = new wxTextCtrl( btnPanel, wxID_ANY );
@@ -74,6 +79,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   wxStaticText* apertureLabel = new wxStaticText( btnPanel, wxID_ANY, "Aperture" );
   wxBoxSizer* apertureSizer( new wxBoxSizer( wxHORIZONTAL ) );
   apertureSizer->Add(apertureLabel);
+  apertureSizer->AddStretchSpacer(2);
   apertureSizer->Add(mApertureEdit);
 
   mLogTextBox->SetBackgroundColour( wxColor( 125, 125, 125 ) );

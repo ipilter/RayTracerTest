@@ -29,7 +29,7 @@ inline std::string ToString( const T& t )
 
 // TODO T can be float or double only!
 template<class T>
-inline T Random( T min = 0.0, T max = 1.0 )
+inline T Random( T min = 0, T max = 1 )
 {
   static std::random_device rd;
   static std::mt19937 gen( rd() );

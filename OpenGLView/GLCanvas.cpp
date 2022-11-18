@@ -17,7 +17,7 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
                 , const wxPalette& palette )
   : wxGLCanvas( parent, id, attribList, pos, size, style, name, palette )
   , mImageSize( imageSize )
-  , mQuadSize( 1.0 * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0 )
+  , mQuadSize( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f )
   , mPanningActive( false )
   , mPreviousMousePosition( 0.0f, 0.0f )
 {
@@ -48,7 +48,7 @@ void GLCanvas::Resize( const math::uvec2& imageSize )
 {
   // TODO: Validate if cleanup is proper
   mImageSize = imageSize;
-  mQuadSize = math::vec2( 1.0 * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0 );
+  mQuadSize = math::vec2( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f );
 
   mMeshes.clear();
   CreateMeshes();
@@ -223,18 +223,18 @@ void GLCanvas::CreateShaders()
 
 void GLCanvas::CreateView()
 {
-  mCameras.push_back( std::make_unique<gl::Camera>( math::vec3( -mQuadSize.x / 2.0, -mQuadSize.y / 2.0, 0.0 ) ) );
+  mCameras.push_back( std::make_unique<gl::Camera>( math::vec3( -mQuadSize.x / 2.0f, -mQuadSize.y / 2.0f, 0.0f ) ) );
 }
 
 math::vec2 GLCanvas::ScreenToWorld( const math::vec2& screen )
 {
-  const math::vec4 ndc( screen.x / static_cast<float>( GetSize().GetX() ) * 2.0 - 1.0
-                        , -screen.y / static_cast<float>( GetSize().GetY() ) * 2.0 + 1.0
-                        , 0.0
-                        , 1.0 );
+  const math::vec4 ndc( screen.x / static_cast<float>( GetSize().GetX() ) * 2.0f - 1.0f
+                        , -screen.y / static_cast<float>( GetSize().GetY() ) * 2.0f + 1.0f
+                        , 0.0f
+                        , 1.0f );
 
   const math::mat4 invVpMatrix( glm::inverse( mCameras.back()->ViewProj() ) );
-  const math::vec4 worldSpacePoint( invVpMatrix * ndc ); // !!
+  const math::vec4 worldSpacePoint( invVpMatrix * ndc ); // !! never forget !!
   return math::vec2( worldSpacePoint );
 }
 
