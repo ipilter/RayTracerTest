@@ -21,7 +21,6 @@ __global__ void InitRandom( uint32_t seed
   const size_t offset( x + y * width );
   curandState_t state( states[offset] );
 
-  // TODO: param 2 is a mistery, if I use x or y instead of offset I get a weird pattern when averaging the samples together
   curand_init( seed,   // the seed can be the same for each core
                offset, // the sequence number should be different for each core (unless you want all cores to get the same sequence of numbers for some reason - use thread id!
                0,      // the offset is how much extra we advance in the sequence for each call, can be 0
