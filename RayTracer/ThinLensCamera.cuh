@@ -15,9 +15,9 @@ public:
   __host__ __device__ ThinLensCamera( const math::vec3& position
                                       , const math::vec3& target
                                       , const math::vec3& upGuide
-                                      , const float fov // deg
-                                      , const float focalLength // m?
-                                      , const float aperture )
+                                      , const float fov // field of view [deg]
+                                      , const float focalLength // focal length [mm?]
+                                      , const float aperture ) // radius of lens [mm?]
     : mCameraTransformation( CalculateCameraTransformation( position, target, upGuide ) )
     , mFov( glm::radians( fov ) )
     , mFocalLength( focalLength )
@@ -25,8 +25,8 @@ public:
   {}
 
   __device__ Ray GetRay( const math::uvec2& pixel
-                                  , const math::uvec2& dimensions
-                                  , Random& random ) const
+                         , const math::uvec2& dimensions
+                         , Random& random ) const
   {
     // calculate real ray using physical camera properties
     // we assume the lens being positioned at camera position
@@ -95,7 +95,8 @@ public:
   }
 
 private:
-  __host__ __device__ Ray PinHoleRay( const math::uvec2& pixel, const math::uvec2& dimensions ) const
+  __host__ __device__ Ray PinHoleRay( const math::uvec2& pixel
+                                      , const math::uvec2& dimensions ) const
   {
     const float max( static_cast<float>( glm::min( dimensions.x, dimensions.y ) ) );
     const float min( static_cast<float>( glm::max( dimensions.x, dimensions.y ) ) );
@@ -131,10 +132,10 @@ private:
                        , position.x, position.y, position.z, 1.0f );
   }
 
-  float mFov;
+  float mFov;         // field of view
   float mFocalLength; // focal point distance. The distance at which items in the image are in focus.
-  float mAperture; // radius of the aperture
-  math::mat4 mCameraTransformation;
+  float mAperture;    // radius of the aperture
+  math::mat4 mCameraTransformation; // position and orientation
 };
 
 }

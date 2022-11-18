@@ -36,7 +36,7 @@ public:
     mOffset = o;
   }
 
-  // TODO unresolved external symbo if these are in the cu file!
+  // TODO unresolved external symbol if these are in the cu file!
   __device__ float Uniform()
   {
     return curand_uniform( &mStates[mOffset] );
@@ -44,11 +44,10 @@ public:
 
   __device__ math::vec2 UnifromOnDisk()
   {
-    //const float t( 2.0f * 3.14156545f * curand_uniform( &mStates[mOffset] ) );
-    //const float u( curand_uniform( &mStates[mOffset] ) + curand_uniform( &mStates[mOffset] ) );
-    //const float sr( u > 1.0f ? 2.0f - u : u );
-    //return math::vec2( sr * glm::cos( t ), sr * glm::sin( t ) );
-    return math::vec2( curand_uniform( &mStates[mOffset] ), curand_uniform( &mStates[mOffset] ) );
+    const float t( 2.0f * 3.14156545f * curand_uniform( &mStates[mOffset] ) );
+    const float u( curand_uniform( &mStates[mOffset] ) + curand_uniform( &mStates[mOffset] ) );
+    const float sr( u > 1.0f ? 2.0f - u : u );
+    return math::vec2( sr * glm::cos( t ), sr * glm::sin( t ) );
   }
 
 private:

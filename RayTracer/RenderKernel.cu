@@ -27,12 +27,12 @@ __global__ void RenderKernel( rt::RenderData renderData )
   renderData.mRandom.SetOffset( offset );
 
   vec3 accu( 0.0f );
-  for ( auto s = 0; s < renderData.mSampleCount; ++s )
+  for ( auto s( 0 ); s < renderData.mSampleCount; ++s )
   {
     const rt::Ray ray( renderData.mCamera.GetRay( pixel, renderData.mDimensions, renderData.mRandom ) );
     accu += ray.direction();
   }
-  accu /= renderData.mSampleCount; // static_cast<float>( );
+  accu /= renderData.mSampleCount;
 
   // save final pixel color
   renderData.mPixelBuffer[offset] = utils::Color( 255 * accu.x
@@ -54,6 +54,12 @@ cudaError_t RunRenderKernel( rt::RenderData& renderData )
 
   cudaEventRecord( start, 0 );
   RenderKernel<<<blocksPerGrid, threadsPerBlock>>> ( renderData );
+  
+  // TODO: this blocks the CPU till all the GPU commands are executed (kernel, copy, etc)
+  // tis is needed here as the random states will be destruyed just after this method exits
+  // kernels still uses them -> cudafree fails in ~Random()
+  cudaDeviceSynchronize();
+
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop );
 
