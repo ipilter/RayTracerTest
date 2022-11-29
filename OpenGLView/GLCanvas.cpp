@@ -7,14 +7,14 @@
 #include "Common\HostUtils.h"
 
 GLCanvas::GLCanvas( const math::uvec2& imageSize
-                , wxWindow* parent
-                , wxWindowID id
-                , const int* attribList
-                , const wxPoint& pos
-                , const wxSize& size
-                , long style
-                , const wxString& name
-                , const wxPalette& palette )
+                    , wxWindow* parent
+                    , wxWindowID id
+                    , const int* attribList
+                    , const wxPoint& pos
+                    , const wxSize& size
+                    , long style
+                    , const wxString& name
+                    , const wxPalette& palette )
   : wxGLCanvas( parent, id, attribList, pos, size, style, name, palette )
   , mImageSize( imageSize )
   , mQuadSize( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f )

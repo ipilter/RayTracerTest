@@ -47,18 +47,18 @@ void Texture::UnbindTextureUnit()
 
 void Texture::CreateFromArray( const uint32_t* array )  // TODO: let channel count and bytes per channel be also param from outside (fully descirbe the incoming pixel data)
 {
-  glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, mSize.x, mSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, array );
+  glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, mSize.x, mSize.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, array );
 }
 
 void Texture::CreateFromPBO()  // TODO: let channel count and bytes per channel be also param from outside (fully descirbe the incoming pixel data)
 {
-  glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, mSize.x, mSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0 );
+  glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, mSize.x, mSize.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, 0 );
 }
 
 void Texture::UpdateFromPBO()
 {
   glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
-  glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, GL_RGBA, GL_UNSIGNED_BYTE, 0 );
+  glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, GL_BGRA, GL_UNSIGNED_BYTE, 0 );
 }
 
 void Texture::UpdateFromPBO( uint32_t regionPosX, uint32_t regionPosY, uint32_t regionWidth, uint32_t regionHeight )
@@ -67,7 +67,7 @@ void Texture::UpdateFromPBO( uint32_t regionPosX, uint32_t regionPosY, uint32_t 
   glTexSubImage2D( GL_TEXTURE_2D, 0
                    , regionPosX, regionPosY
                    , regionWidth, regionHeight
-                   , GL_RGBA, GL_UNSIGNED_BYTE
+                   , GL_BGRA, GL_UNSIGNED_BYTE
                    , reinterpret_cast<void*>( regionPosX * 4ull + regionPosY * 4ull * mSize.x ) );
   glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
 }
