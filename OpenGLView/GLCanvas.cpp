@@ -6,6 +6,24 @@
 #include "Common\Logger.h"
 #include "Common\HostUtils.h"
 
+GLCanvas::RenderTargetGuard::RenderTargetGuard( GLCanvas& glCanvas )
+  : mPbo( glCanvas.GetFrontPbo() )
+  , mGLCanvas( glCanvas )
+{
+  mGLCanvas.MapCudaResource( mPbo );
+}
+
+uint32_t* GLCanvas::RenderTargetGuard::GetPtr()
+{
+  return mGLCanvas.GetMappedCudaPointer( mPbo );
+}
+
+GLCanvas::RenderTargetGuard::~RenderTargetGuard()
+{
+  mGLCanvas.UnMapCudaResource( mPbo );
+}
+
+
 GLCanvas::GLCanvas( const math::uvec2& imageSize
                     , wxWindow* parent
                     , wxWindowID id
@@ -65,11 +83,6 @@ void GLCanvas::Resize( const math::uvec2& imageSize )
   CreateTextures();
 }
 
-const math::uvec2& GLCanvas::ImageSize() const
-{
-  return mImageSize;
-}
-
 void GLCanvas::Update()
 {
   try
@@ -95,15 +108,14 @@ void GLCanvas::Update()
   }
 }
 
-uint32_t* GLCanvas::GetRenderTarget()
+const math::uvec2& GLCanvas::ImageSize() const
 {
-  MapCudaResource( mPBOs.front() );
-  return GetMappedCudaPointer( mPBOs.front() );
+  return mImageSize;
 }
 
-void GLCanvas::ReleaseRenderTarget()
+gl::PBO::uptr& GLCanvas::GetFrontPbo()
 {
-  UnMapCudaResource( mPBOs.front() );
+  return mPBOs.front();
 }
 
 void GLCanvas::Initialize()
@@ -120,45 +132,49 @@ void GLCanvas::Initialize()
   Bind( wxEVT_MOUSEWHEEL, &GLCanvas::OnMouseWheel, this );
 
   // OpenGL
-  wxGLContextAttrs contextAttrs;
-  contextAttrs.CoreProfile().OGLVersion( 4, 5 ).Robust().ResetIsolation().EndList();
-  mContext = std::make_unique<wxGLContext>( this, nullptr, &contextAttrs );
-  SetCurrent( *mContext );
-
-  glewExperimental = false;
-  GLenum err = glewInit();
-  if ( err != GLEW_OK )
   {
-    const GLubyte* msg = glewGetErrorString( err );
-    throw std::exception( reinterpret_cast<const char*>( msg ) );
+    wxGLContextAttrs contextAttrs;
+    contextAttrs.CoreProfile().OGLVersion( 4, 5 ).Robust().ResetIsolation().EndList();
+    mContext = std::make_unique<wxGLContext>( this, nullptr, &contextAttrs );
+    SetCurrent( *mContext );
+
+    glewExperimental = false;
+    GLenum err = glewInit();
+    if ( err != GLEW_OK )
+    {
+      const GLubyte* msg = glewGetErrorString( err );
+      throw std::runtime_error( reinterpret_cast<const char*>( msg ) );
+    }
+
+    auto fp64 = glewGetExtension( "GL_ARB_gpu_shader_fp64" );
+    logger::Logger::Instance() << "GL_ARB_gpu_shader_fp64 " << ( fp64 == 1 ? "supported" : "not supported" ) << "\n";
+
+    // TODO: what is the safest way to ensure this (if pixel data is rgba)?
+    glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
   }
-
-  auto fp64 = glewGetExtension( "GL_ARB_gpu_shader_fp64" );
-  logger::Logger::Instance() << "GL_ARB_gpu_shader_fp64 " << ( fp64 == 1 ? "supported" : "not supported" ) << "\n";
-
-  // TODO: what is the safest way to ensure this (if pixel data is rgba)?
-  glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
 
   // Cuda
-  int gpuCount = 0;
-  cudaError_t error_test = cudaGetDeviceCount( &gpuCount );
-  if ( error_test != cudaSuccess || gpuCount < 1 )
   {
-    throw std::exception( "cudaGetDeviceCount failed" );
-  }
+    int gpuCount = 0;
+    cudaError_t err = cudaGetDeviceCount( &gpuCount );
+    if ( err != cudaSuccess || gpuCount < 1 )
+    {
+      throw std::runtime_error( std::string( "cudaGetDeviceCount failed: " ) + cudaGetErrorString( err ) );
+    }
 
-  cudaDeviceProp prop = { 0 };
-  int gpuId = 0;
-  error_test = cudaGetDeviceProperties( &prop, gpuId );
-  if ( error_test != cudaSuccess )
-  {
-    throw std::exception( "cudaGetDeviceProperties failed" );
-  }
+    cudaDeviceProp prop = { 0 };
+    int gpuId = 0;
+    err = cudaGetDeviceProperties( &prop, gpuId );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( std::string( "cudaGetDeviceProperties failed: " ) + cudaGetErrorString( err ) );
+    }
 
-  error_test = cudaGLSetGLDevice( gpuId );
-  if ( error_test != cudaSuccess )
-  {
-    throw std::exception( "cudaGLSetGLDevice failed" );
+    err = cudaGLSetGLDevice( gpuId );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( std::string( "cudaGLSetGLDevice failed: " ) + cudaGetErrorString( err ) );
+    }
   }
 }
 
@@ -259,7 +275,8 @@ void GLCanvas::RegisterCudaResource( const gl::PBO::uptr& pbo )
     cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsNone );
     if ( err != cudaSuccess )
     {
-      throw std::runtime_error( "cudaGraphicsGLRegisterBuffer failed" );
+      // TODO handle error
+      throw std::runtime_error( std::string( "cudaGraphicsGLRegisterBuffer failed: " ) + cudaGetErrorString( err ) );
     }
   }
 }
@@ -269,7 +286,7 @@ void GLCanvas::UnRegisterCudaResource( const gl::PBO::uptr& pbo )
   cudaError_t err = cudaGraphicsUnregisterResource( mPboCudaResourceTable[pbo->Id()] );
   if ( err != cudaSuccess )
   {
-    throw std::runtime_error( "cudaGraphicsUnregisterResource failed" );
+    throw std::runtime_error( std::string( "cudaGraphicsUnregisterResource failed: " ) + cudaGetErrorString( err ) );
   }
 }
 
@@ -278,7 +295,7 @@ void GLCanvas::MapCudaResource( const gl::PBO::uptr& pbo )
   cudaError_t err = cudaGraphicsMapResources( 1, &mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
   if ( err != cudaSuccess )
   {
-    throw std::runtime_error( "cudaGraphicsMapResources failed" );
+    throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
   }
 }
 
@@ -287,7 +304,7 @@ void GLCanvas::UnMapCudaResource( const gl::PBO::uptr& pbo )
   cudaError_t err = cudaGraphicsUnmapResources( 1, &mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
   if ( err != cudaSuccess )
   {
-    throw std::runtime_error( "cudaGraphicsUnmapResources failed" );
+    throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
   }
 }
 
@@ -298,9 +315,20 @@ uint32_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
   cudaError_t err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &ptr ), &mapped_size, mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
   if ( err != cudaSuccess )
   {
-    throw std::runtime_error( "cudaGraphicsResourceGetMappedPointer failed" );
+    throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
   }
   return ptr;
+}
+
+uint32_t* GLCanvas::GetRenderTarget()
+{
+  MapCudaResource( mPBOs.front() );
+  return GetMappedCudaPointer( mPBOs.front() );
+}
+
+void GLCanvas::ReleaseRenderTarget()
+{
+  UnMapCudaResource( mPBOs.front() );
 }
 
 void GLCanvas::OnPaint( wxPaintEvent& /*event*/ )

@@ -15,14 +15,14 @@ public:
 public:
   Bitmap( const math::uvec2& size, const color_t fillColor = 0x00000000 )
     : mSize( size )
-    , mImageData( new color_t[static_cast<size_t>( size.x ) * size.y] )
-  {
-    std::fill( mImageData, mImageData + static_cast<size_t>( size.x ) * size.y, fillColor );
-  }
+    , mImageData( static_cast<size_t>( size.x )* size.y, fillColor )
+  {}
 
-  ~Bitmap()
+  Bitmap( const math::uvec2& size, std::vector<color_t>& pixelArray )
+    : mSize( size )
+    , mImageData()
   {
-    delete[] mImageData;
+    std::swap( mImageData, pixelArray );
   }
 
   void SetPixel( const uint32_t x, const uint32_t y, const color_t& color )
@@ -44,21 +44,15 @@ public:
 
   void Write( const std::string& path ) const
   {
-    ImageHeader imageHeader;
-    imageHeader.size = sizeof( ImageHeader ) + sizeof( ColorHeader );
-    imageHeader.width = mSize.x;
-    imageHeader.height = mSize.y * -1;
-
-    FileHeader fileHeader;
-    fileHeader.dataOffset = sizeof( FileHeader ) + sizeof( ImageHeader ) + sizeof( ColorHeader );
-    fileHeader.fileSize = fileHeader.dataOffset + sizeof( color_t ) * mSize.x * mSize.y;
-
-    ColorHeader colorHeader;
     std::ofstream ostream( path, std::ios::out | std::ios::binary );
-    util::Write_t( ostream, fileHeader );
-    util::Write_t( ostream, imageHeader );
-    util::Write_t( ostream, colorHeader );
-    ostream.write( reinterpret_cast<const char*>( mImageData ), sizeof( color_t ) * mSize.x * mSize.y );
+    if ( !ostream.good() )
+    {
+      throw std::runtime_error( std::string( "cannot save file to path " ) + path );
+    }
+
+    Header header( mSize.x, mSize.y );
+    header.Write( ostream );
+    ostream.write( reinterpret_cast<const char*>( &mImageData.front() ), sizeof( color_t ) * mSize.x * mSize.y );
   }
 
 public:
@@ -75,41 +69,73 @@ public:
 
 private:
   glm::uvec2 mSize;
-  color_t* mImageData;
+  std::vector<color_t> mImageData;
 
 private:
+  class Header
+  {
+  public:
+    Header( const int32_t w, const int32_t h )
+      : mFileHeader( w, h )
+      , mImageHeader( w, h )
+    {}
+
+    void Write( std::ofstream& ostr )
+    {
+      util::Write_t( ostr, *this );
+    }
+
+  private:
 #pragma pack(push, 1)
-  struct FileHeader
-  {
-    uint16_t signature{ 0x4D42 }; // File type always BM which is 0x4D42
-    uint32_t fileSize{ 0 };       // Size of the file (in bytes)
-    uint16_t reserved[2]{ 0 };    // Reserved, always 0
-    uint32_t dataOffset{ 0 };     // Start position of pixel data (bytes from the beginning of the file)
-  };
+    class FileHeader
+    {
+    public:
+      FileHeader( const int32_t w, const int32_t h )
+        : mFileSize( sizeof( FileHeader ) + sizeof( ImageHeader ) + sizeof( ColorHeader ) + sizeof( color_t ) * w * h )
+        , mDataOffset( sizeof( FileHeader ) + sizeof( ImageHeader ) + sizeof( ColorHeader ) )
+      {}
 
-  struct ImageHeader
-  {
-    uint32_t size{ 0 };          // Size of this header (in bytes)
-    int32_t width{ 0 };          // width of bitmap in pixels
-    int32_t height{ 0 };         // height of bitmap in pixels + -> bottom up, - -> top-down
-    uint16_t planes{ 1 };        // No. of planes for the target device
-    uint16_t bpp{ 32 };          // No. of bits per pixel
-    uint32_t compression{ 3 };   // 3 - uncompressed 32bit.
-    uint32_t imageSize{ 0 };
-    int32_t widthPpm{ 0 };
-    int32_t heightPpm{ 0 };
-    uint32_t usedColors{ 0 };
-    uint32_t importantColors{ 0 };
-  };
+    private:
+      uint16_t mSignature{ 0x4D42 };           // File type (BM)
+      uint32_t mFileSize{ 0 };                 // Size of the file (bytes)
+      uint16_t mReserved[2]{ 0 };              // Reserved
+      uint32_t mDataOffset{ 0 };               // Start position of pixel data (bytes from the beginning of the file)
+    };
+    class ImageHeader
+    {
+    public:
+      ImageHeader( const int32_t w, const int32_t h )
+        : mSize( sizeof( ImageHeader ) + sizeof( ColorHeader ) )
+        , mWidth( w )
+        , mHeight( -h )
+      {}
 
-  struct ColorHeader
-  {
-    uint32_t red_mask{ 0x00FF0000 };         // Bit mask for the red channel
-    uint32_t green_mask{ 0x0000FF00 };       // Bit mask for the green channel
-    uint32_t blue_mask{ 0x000000FF };        // Bit mask for the blue channel
-    uint32_t alpha_mask{ 0xFF000000 };       // Bit mask for the alpha channel
-    uint32_t color_space_type{ 0x73524742 }; // Default "sRGB" (0x73524742)
-    uint32_t unused[16]{ 0 };                // Unused data for sRGB color space
-  };
+    private:
+      uint32_t mSize{ 0 };                     // Size of this header (bytes)
+      int32_t  mWidth{ 0 };                    // Width of bitmap (pixels)
+      int32_t  mHeight{ 0 };                   // Height of bitmap (pixels, > 0 -> bottom up, < 0 -> top-down)
+      uint16_t mPlanes{ 1 };                   // Number of planes for the target device
+      uint16_t mBpp{ 32 };                     // Number of bits per pixel
+      uint32_t mCompression{ 3 };              // 3 for uncompressed 32bit
+      uint32_t mImageSize{ 0 };                // 0 by default
+      int32_t  mWidthPpm{ 0 };                 // 0 by default
+      int32_t  mHeightPpm{ 0 };                // 0 by default
+      uint32_t mUsedColors{ 0 };               // 0 by default
+    };
+    class ColorHeader
+    {
+      uint32_t mImportantColors{ 0 };          // 0 by default
+      uint32_t mRedMask{ 0x00FF0000 };         // Bit mask for the red channel
+      uint32_t mGreenMask{ 0x0000FF00 };       // Bit mask for the green channel
+      uint32_t mBlueMask{ 0x000000FF };        // Bit mask for the blue channel
+      uint32_t mAlphaMask{ 0xFF000000 };       // Bit mask for the alpha channel
+      uint32_t mColorSpaceType{ 0x73524742 };  // Default "sRGB" (0x73524742)
+      uint32_t mUnused[16]{ 0 };               // Unused data for sRGB color space
+    };
 #pragma pack(pop)
+
+    FileHeader mFileHeader;
+    ImageHeader mImageHeader;
+    ColorHeader mColorHeader;
+  };
 };

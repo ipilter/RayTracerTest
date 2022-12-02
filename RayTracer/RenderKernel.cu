@@ -9,7 +9,7 @@
 
 #include "RenderData.cuh"
 
-#include "Utils.cuh"
+#include "DeviceUtils.cuh"
 #include "ThinLensCamera.cuh"
 
 // Note: arguments MUST be by value. Make sure they are fast to copy

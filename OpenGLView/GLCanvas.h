@@ -18,6 +18,20 @@
 class GLCanvas : public wxGLCanvas, public virtual ISptr<GLCanvas>
 {
 public:
+  class RenderTargetGuard
+  {
+  public:
+    RenderTargetGuard( GLCanvas& glCanvas );
+    ~RenderTargetGuard();
+
+    uint32_t* GetPtr();
+
+  private:
+    const gl::PBO::uptr& mPbo;
+    GLCanvas& mGLCanvas;
+  };
+
+public:
   GLCanvas( const math::uvec2& imageSize
           , wxWindow* parent
           , wxWindowID id = wxID_ANY
@@ -33,9 +47,7 @@ public:
 
   void Update();
   const math::uvec2& ImageSize() const;
-
-  uint32_t* GetRenderTarget(); // TODO: force Release when render is done on this target
-  void ReleaseRenderTarget();
+  gl::PBO::uptr& GetFrontPbo();
 
 private:
   void Initialize();
@@ -47,13 +59,15 @@ private:
   math::vec2 ScreenToWorld( const math::vec2& screenSpacePoint );
   math::ivec2 WorldToImage( const math::vec2& worldSpacePoint );
 
-  // CudaGL interop
   void RegisterCudaResource( const gl::PBO::uptr& pbo );
   void UnRegisterCudaResource( const gl::PBO::uptr& pbo );
 
   void MapCudaResource( const gl::PBO::uptr& pbo );
   void UnMapCudaResource( const gl::PBO::uptr& pbo );
   uint32_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
+
+  uint32_t* GetRenderTarget();
+  void ReleaseRenderTarget();
 
   void OnPaint( wxPaintEvent& event );
   void OnSize( wxSizeEvent& event );

@@ -3,7 +3,7 @@
 #include "Common\Sptr.h"
 #include "Common\Math.h"
 #include "Ray.cuh"
-#include "Utils.cuh"
+#include "DeviceUtils.cuh"
 #include "Random.cuh"
 
 namespace rt

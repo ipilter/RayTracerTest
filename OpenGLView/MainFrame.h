@@ -18,6 +18,7 @@ private:
   void OnResizeButton( wxCommandEvent& event );
   void OnRenderButton( wxCommandEvent& event );
   void OnStopButton( wxCommandEvent& event );
+  void OnSaveButton( wxCommandEvent& event );
 
   GLCanvas::uptr mGLCanvas;
   wxTextCtrl* mLogTextBox;

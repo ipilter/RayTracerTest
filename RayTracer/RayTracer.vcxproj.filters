@@ -26,7 +26,7 @@
     <ClInclude Include="RayTracer.h">
       <Filter>Header Filkes</Filter>
     </ClInclude>
-    <ClInclude Include="Utils.cuh">
+    <ClInclude Include="DeviceUtils.cuh">
       <Filter>Kernel</Filter>
     </ClInclude>
     <ClInclude Include="Ray.cuh">
