@@ -80,8 +80,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V
-</Command>
+      <Command>attrib -R $(OutDir)..\includes\$(ProjectName)\*.*
+xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V
+attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>glew32.lib</AdditionalDependencies>
@@ -106,8 +107,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V
-</Command>
+      <Command>attrib -R $(OutDir)..\includes\$(ProjectName)\*.*
+xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V
+attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>glew32.lib</AdditionalDependencies>

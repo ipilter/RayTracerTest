@@ -68,7 +68,9 @@
       <AdditionalOptions>--diag-suppress 20012 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
     <PostBuildEvent>
-      <Command>xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V</Command>
+      <Command>attrib -R $(OutDir)..\includes\$(ProjectName)\*.*
+xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V
+attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>Common.lib;cudart_static.lib</AdditionalDependencies>
@@ -97,7 +99,9 @@
       <AdditionalOptions>--diag-suppress 20012 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
     <PostBuildEvent>
-      <Command>xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V</Command>
+      <Command>attrib -R $(OutDir)..\includes\$(ProjectName)\*.*
+xcopy $(ProjectDir)*.h $(OutDir)..\includes\$(ProjectName)\ /Y /V
+attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>Common.lib;cudart_static.lib;</AdditionalDependencies>
