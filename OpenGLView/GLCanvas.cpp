@@ -6,24 +6,24 @@
 #include "Common\Logger.h"
 #include "Common\HostUtils.h"
 
-GLCanvas::RenderTargetGuard::RenderTargetGuard( GLCanvas& glCanvas )
-  : mPbo( glCanvas.GetFrontPbo() )
-  , mGLCanvas( glCanvas )
+// Wrapper around MapCudaResource / UnMapCudaResource CUDA calls for safety
+GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
+  : mGLCanvas( glCanvas )
 {
-  mGLCanvas.MapCudaResource( mPbo );
+  mGLCanvas.MapCudaResource( mGLCanvas.GetFrontPbo() );
 }
 
-uint32_t* GLCanvas::RenderTargetGuard::GetPtr()
+uint32_t* GLCanvas::CudaResourceGuard::GetDevicePtr()
 {
-  return mGLCanvas.GetMappedCudaPointer( mPbo );
+  return mGLCanvas.GetMappedCudaPointer( mGLCanvas.GetFrontPbo() );
 }
 
-GLCanvas::RenderTargetGuard::~RenderTargetGuard()
+GLCanvas::CudaResourceGuard::~CudaResourceGuard()
 {
-  mGLCanvas.UnMapCudaResource( mPbo );
+  mGLCanvas.UnMapCudaResource( mGLCanvas.GetFrontPbo() );
 }
 
-
+// OpenGL render surface with CUDA connection
 GLCanvas::GLCanvas( const math::uvec2& imageSize
                     , wxWindow* parent
                     , wxWindowID id
@@ -111,11 +111,6 @@ void GLCanvas::Update()
 const math::uvec2& GLCanvas::ImageSize() const
 {
   return mImageSize;
-}
-
-gl::PBO::uptr& GLCanvas::GetFrontPbo()
-{
-  return mPBOs.front();
 }
 
 void GLCanvas::Initialize()
@@ -329,6 +324,11 @@ uint32_t* GLCanvas::GetRenderTarget()
 void GLCanvas::ReleaseRenderTarget()
 {
   UnMapCudaResource( mPBOs.front() );
+}
+
+gl::PBO::uptr& GLCanvas::GetFrontPbo()
+{
+  return mPBOs.front();
 }
 
 void GLCanvas::OnPaint( wxPaintEvent& /*event*/ )

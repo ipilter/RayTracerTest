@@ -18,16 +18,15 @@
 class GLCanvas : public wxGLCanvas, public virtual ISptr<GLCanvas>
 {
 public:
-  class RenderTargetGuard
+  class CudaResourceGuard
   {
   public:
-    RenderTargetGuard( GLCanvas& glCanvas );
-    ~RenderTargetGuard();
+    CudaResourceGuard( GLCanvas& glCanvas );
+    ~CudaResourceGuard();
 
-    uint32_t* GetPtr();
+    uint32_t* GetDevicePtr();
 
   private:
-    const gl::PBO::uptr& mPbo;
     GLCanvas& mGLCanvas;
   };
 
@@ -47,7 +46,6 @@ public:
 
   void Update();
   const math::uvec2& ImageSize() const;
-  gl::PBO::uptr& GetFrontPbo();
 
 private:
   void Initialize();
@@ -68,6 +66,8 @@ private:
 
   uint32_t* GetRenderTarget();
   void ReleaseRenderTarget();
+
+  gl::PBO::uptr& GetFrontPbo();
 
   void OnPaint( wxPaintEvent& event );
   void OnSize( wxSizeEvent& event );

@@ -137,8 +137,8 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
   mRayTracer->Resize( imageSize );
 
   // Rerender frame with the new settings
-  GLCanvas::RenderTargetGuard rtg( *mGLCanvas );
-  mRayTracer->Trace( rtg.GetPtr(), mGLCanvas->ImageSize(), sampleCount, fov, focalLength, aperture );
+  GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+  mRayTracer->Trace( cudaGuard.GetDevicePtr(), mGLCanvas->ImageSize(), sampleCount, fov, focalLength, aperture );
 
   mGLCanvas->Update();
 }
@@ -151,8 +151,8 @@ void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
   const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mFocalLengthEdit->GetValue().utf8_str() ) ) );
   const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mApertureEdit->GetValue().utf8_str() ) ) );
 
-  GLCanvas::RenderTargetGuard rtg( *mGLCanvas );
-  mRayTracer->Trace( rtg.GetPtr(), mGLCanvas->ImageSize(), sampleCount, fov, focalLength, aperture );
+  GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+  mRayTracer->Trace( cudaGuard.GetDevicePtr(), mGLCanvas->ImageSize(), sampleCount, fov, focalLength, aperture );
 
   mGLCanvas->Update();
 }
@@ -171,8 +171,8 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
   auto pixelCount = mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y;
   std::vector<uint32_t> hostMem( pixelCount, 0 );
 
-  GLCanvas::RenderTargetGuard rtg( *mGLCanvas );
-  cudaError_t err( cudaMemcpy( &hostMem.front(), rtg.GetPtr(), pixelCount * sizeof( uint32_t ), cudaMemcpyDeviceToHost ) );
+  GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+  cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( uint32_t ), cudaMemcpyDeviceToHost ) );
   if ( err != cudaSuccess )
   {
     throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
