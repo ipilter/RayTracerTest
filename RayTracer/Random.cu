@@ -2,23 +2,23 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <curand.h>
 
-namespace rt
+namespace random
 {
 
 __global__ void InitRandom( uint32_t seed
-                            , const uint32_t width
-                            , const uint32_t height
+                            , math::uvec2 size
                             , curandState_t* states )
 {
   const uint32_t x( blockIdx.x * blockDim.x + threadIdx.x );
   const uint32_t y( blockIdx.y * blockDim.y + threadIdx.y );
-  if ( x >= width || y >= height )
+  if ( x >= size.x || y >= size.y )
   {
     return;
   }
 
-  const size_t offset( x + y * width );
+  const size_t offset( x + y * size.x );
   curandState_t state( states[offset] );
 
   curand_init( seed,   // the seed can be the same for each core
@@ -29,9 +29,9 @@ __global__ void InitRandom( uint32_t seed
   states[offset] = state;
 }
 
-void Random::Init( const math::uvec2& size )
+__host__  void RunInitRandom( const math::uvec2& size, curandState_t*& states )
 {
-  cudaError_t err = cudaMalloc( reinterpret_cast<void**>( &mStates ), size.x * size.y * sizeof( curandState_t ) );
+  cudaError_t err = cudaMalloc( reinterpret_cast<void**>( &states ), size.x * size.y * sizeof( curandState_t ) );
   if ( err != cudaSuccess )
   {
     // TODO handle error
@@ -43,7 +43,8 @@ void Random::Init( const math::uvec2& size )
                             , static_cast<uint32_t>( glm::ceil( size.y / static_cast<float>( threadsPerBlock.y ) ) )
                             , 1 );
 
-  InitRandom<<<blocksPerGrid, threadsPerBlock>>>( static_cast<uint32_t>( time( nullptr ) ), size.x, size.y, mStates );
+  InitRandom<<<blocksPerGrid, threadsPerBlock>>>( static_cast<uint32_t>( time( nullptr ) ), size, states );
+  cudaDeviceSynchronize();
   err = cudaGetLastError();
   if ( err != cudaSuccess )
   {

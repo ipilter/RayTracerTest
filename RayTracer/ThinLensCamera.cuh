@@ -26,22 +26,26 @@ public:
 
   __device__ Ray GetRay( const math::uvec2& pixel
                          , const math::uvec2& dimensions
-                         , Random& random ) const
+                         , curandState_t& randomState ) const
   {
     // calculate real ray using physical camera properties
     // we assume the lens being positioned at camera position
     // https://drive.google.com/file/d/19mAlPb5YO-KDladvo3C8yzyrYmrudPJL/view?pli=1
 
-    // first calculate the primary ray of the pinhole camera
+    // first calculate the primary ray using a pinhole camera
     const Ray primary( PinHoleRay( pixel, dimensions ) );
 
     // random vec between 0.0 and aperture -> random pos on lens
-    const math::vec3 randomOffset( math::vec3( random.UnifromOnDisk() * mAperture, 0.0f ) );
+    const math::vec3 randomOffset( math::vec3( random::UnifromOnDisk( randomState ) * mAperture, 0.0f ) );
+
+    // focal point
     const math::vec3 focalPoint( Position() + mFocalLength * primary.direction() );
 
+    // sample lens surface
     const math::vec3 randomLensPoint( Position() + randomOffset );
-    const math::vec3 direction( focalPoint - randomLensPoint );
-    return Ray( randomLensPoint, direction ); 
+
+    // calculate final ray
+    return Ray( randomLensPoint, focalPoint - randomLensPoint ); 
   }
 
   __host__ __device__ math::vec3 Position() const

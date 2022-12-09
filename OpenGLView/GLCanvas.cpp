@@ -116,12 +116,15 @@ const math::uvec2& GLCanvas::ImageSize() const
 void GLCanvas::Initialize()
 {
   // Event handlers
+  // TODO like in MainFrame
   Bind( wxEVT_SIZE, &GLCanvas::OnSize, this );
   Bind( wxEVT_PAINT, &GLCanvas::OnPaint, this );
   Bind( wxEVT_RIGHT_DOWN, &GLCanvas::OnMouseRightDown, this );
   Bind( wxEVT_RIGHT_UP, &GLCanvas::OnMouseRightUp, this );
   Bind( wxEVT_LEFT_DOWN, &GLCanvas::OnMouseLeftDown, this );
   Bind( wxEVT_LEFT_UP, &GLCanvas::OnMouseLeftUp, this );
+  Bind( wxEVT_MIDDLE_DOWN, &GLCanvas::OnMouseMiddleDown, this );
+  Bind( wxEVT_MIDDLE_UP, &GLCanvas::OnMouseMiddleUp, this );
   Bind( wxEVT_MOTION, &GLCanvas::OnMouseMove, this );
   Bind( wxEVT_LEAVE_WINDOW, &GLCanvas::OnMouseLeave, this );
   Bind( wxEVT_MOUSEWHEEL, &GLCanvas::OnMouseWheel, this );
@@ -307,7 +310,9 @@ uint32_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
 {
   uint32_t* ptr = nullptr;
   size_t mapped_size = 0;
-  cudaError_t err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &ptr ), &mapped_size, mPboCudaResourceTable[pbo->Id()] ); // TODO searching every time
+
+  // TODO searching every time
+  cudaError_t err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &ptr ), &mapped_size, mPboCudaResourceTable[pbo->Id()] );
   if ( err != cudaSuccess )
   {
     throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
@@ -408,33 +413,28 @@ void GLCanvas::OnMouseWheel( wxMouseEvent& event )
   Refresh();
 }
 
-void GLCanvas::OnMouseRightDown( wxMouseEvent& event )
+void GLCanvas::OnMouseRightDown( wxMouseEvent& /*event*/ )
+{}
+
+void GLCanvas::OnMouseRightUp( wxMouseEvent& /*event*/ )
+{}
+
+void GLCanvas::OnMouseLeftDown( wxMouseEvent& /*event*/ )
+{}
+
+void GLCanvas::OnMouseLeftUp( wxMouseEvent& /*event*/ )
+{}
+
+void GLCanvas::OnMouseMiddleDown( wxMouseEvent& event )
 {
   mPreviousMousePosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
   mPanningActive = true;
 }
 
-void GLCanvas::OnMouseRightUp( wxMouseEvent& /*event*/ )
+void GLCanvas::OnMouseMiddleUp( wxMouseEvent& /*event*/ )
 {
   mPanningActive = false;
 }
-
-void GLCanvas::OnMouseLeftDown( wxMouseEvent& event )
-{
-  const math::ivec2 screenPos( event.GetX(), event.GetY() );
-  const math::vec2 worldPos( ScreenToWorld( screenPos ) );
-  const math::ivec2 imagePos( WorldToImage( worldPos ) );
-
-  if ( imagePos == math::ivec2( -1, -1 ) )
-  {
-    return;
-  }
-
-  Refresh();
-}
-
-void GLCanvas::OnMouseLeftUp( wxMouseEvent& /*event*/ )
-{}
 
 void GLCanvas::OnMouseLeave( wxMouseEvent& /*event*/ )
 {

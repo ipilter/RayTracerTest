@@ -64,10 +64,11 @@ private:
   void UnMapCudaResource( const gl::PBO::uptr& pbo );
   uint32_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
 
+  // Device memory access Create a CudaResourceGuard before calling GetFrontPbo().
+  // Release of cuda resources is automatic
+  gl::PBO::uptr& GetFrontPbo();
   uint32_t* GetRenderTarget();
   void ReleaseRenderTarget();
-
-  gl::PBO::uptr& GetFrontPbo();
 
   void OnPaint( wxPaintEvent& event );
   void OnSize( wxSizeEvent& event );
@@ -76,6 +77,8 @@ private:
   void OnMouseRightUp( wxMouseEvent& event );
   void OnMouseLeftDown( wxMouseEvent& event );
   void OnMouseLeftUp( wxMouseEvent& event );
+  void OnMouseMiddleDown( wxMouseEvent& event );
+  void OnMouseMiddleUp( wxMouseEvent& event );
   void OnMouseLeave( wxMouseEvent& event );
   void OnMouseWheel( wxMouseEvent& event );
 

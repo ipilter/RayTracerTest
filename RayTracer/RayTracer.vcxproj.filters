@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Kernel">
-      <UniqueIdentifier>{640d6a1e-5fb0-4c99-86d7-5e07e02b9e87}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Filkes">
       <UniqueIdentifier>{4e2d62dd-4c61-4953-9a88-263011b567db}</UniqueIdentifier>
     </Filter>
@@ -12,34 +9,37 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="RenderKernel.cu">
-      <Filter>Kernel</Filter>
-    </CudaCompile>
     <CudaCompile Include="Random.cu">
-      <Filter>Kernel</Filter>
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="RayTracerImpl.cu">
+      <Filter>Source Files</Filter>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RenderKernel.cuh">
-      <Filter>Kernel</Filter>
+    <ClInclude Include="RayTracerImpl.cuh">
+      <Filter>Header Filkes</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceUtils.cuh">
+      <Filter>Header Filkes</Filter>
+    </ClInclude>
+    <ClInclude Include="Random.cuh">
+      <Filter>Header Filkes</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.cuh">
+      <Filter>Header Filkes</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderData.cuh">
+      <Filter>Header Filkes</Filter>
+    </ClInclude>
+    <ClInclude Include="ThinLensCamera.cuh">
+      <Filter>Header Filkes</Filter>
     </ClInclude>
     <ClInclude Include="RayTracer.h">
       <Filter>Header Filkes</Filter>
     </ClInclude>
-    <ClInclude Include="DeviceUtils.cuh">
-      <Filter>Kernel</Filter>
-    </ClInclude>
-    <ClInclude Include="Ray.cuh">
-      <Filter>Kernel</Filter>
-    </ClInclude>
-    <ClInclude Include="ThinLensCamera.cuh">
-      <Filter>Kernel</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderData.cuh">
-      <Filter>Kernel</Filter>
-    </ClInclude>
-    <ClInclude Include="Random.cuh">
-      <Filter>Kernel</Filter>
+    <ClInclude Include="RenderKernel.cuh">
+      <Filter>Header Filkes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

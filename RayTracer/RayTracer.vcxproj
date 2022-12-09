@@ -108,17 +108,18 @@ attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="RayTracerImpl.cu" />
     <CudaCompile Include="Random.cu" />
-    <CudaCompile Include="RenderKernel.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Random.cuh" />
+    <ClInclude Include="RayTracerImpl.cuh" />
+    <ClInclude Include="RayTracer.h" />
     <ClInclude Include="RenderData.cuh" />
+    <ClInclude Include="RenderKernel.cuh" />
     <ClInclude Include="ThinLensCamera.cuh" />
     <ClInclude Include="Ray.cuh" />
     <ClInclude Include="DeviceUtils.cuh" />
-    <ClInclude Include="RenderKernel.cuh" />
-    <ClInclude Include="RayTracer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RayTracer.cpp" />

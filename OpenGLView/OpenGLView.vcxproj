@@ -105,6 +105,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainFrame.cpp" />
     <ClCompile Include="ResourceHandler.cpp" />
+    <ClCompile Include="WxNamedTextControl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
@@ -113,6 +114,7 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceHandler.h" />
     <ClInclude Include="WxMain.h" />
+    <ClInclude Include="WxNamedTextControl.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="View.frag" />
