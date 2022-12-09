@@ -47,7 +47,7 @@ public:
     std::ofstream ostream( path, std::ios::out | std::ios::binary );
     if ( !ostream.good() )
     {
-      throw std::runtime_error( std::string( "cannot save file to path " ) + path );
+      throw std::runtime_error( std::string( "cannot save file to path: \"" ) + path + "\"" );
     }
 
     Header header( mSize.x, mSize.y );

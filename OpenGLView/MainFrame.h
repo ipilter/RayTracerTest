@@ -22,6 +22,7 @@ private:
   void OnRenderButton( wxCommandEvent& event );
   void OnStopButton( wxCommandEvent& event );
   void OnSaveButton( wxCommandEvent& event );
+  void OnLogMessage( const std::string& msg );
 
   wxPanel* mMainPanel;
   wxPanel* mControlPanel;

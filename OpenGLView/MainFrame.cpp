@@ -78,8 +78,10 @@ void MainFrame::InitializeUIElements()
 
   // TODO use common anchestor's ptr in a loop instead these
   mLogTextBox->SetBackgroundColour( wxColor( 065, 065, 065 ) );
-  mLogTextBox->SetForegroundColour( wxColor( 070, 070, 070 ) );
+  mLogTextBox->SetForegroundColour( wxColor( 170, 170, 170 ) );
   mControlPanel->SetBackgroundColour( wxColor( 075, 075, 075 ) );
+
+  OnLogMessage( "UI Initialized");
 }
 
 void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
@@ -126,22 +128,37 @@ void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
 
 void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 {
-  wxFileDialog dlg( this, "Select file", wxEmptyString, "image01", "Bmp|*.bmp", wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-  dlg.ShowModal();
-  wxFileName fileName = dlg.GetPath();
-  wxString path = fileName.GetFullPath();
-
-  // copy pixel data from GPU to CPU then write to disc
-  auto pixelCount = mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y;
-  std::vector<rt::color_t> hostMem( pixelCount, 0 );
-
-  GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-  cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
-  if ( err != cudaSuccess )
+  try
   {
-    throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
-  }
+    wxFileDialog dlg( this, "Select file", wxEmptyString, "image01", "Bmp|*.bmp", wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+    if ( dlg.ShowModal() == wxID_CANCEL )
+    {
+      return;
+    }
 
-  rt::Bitmap bmp( mGLCanvas->ImageSize(), hostMem );
-  bmp.Write( path.ToStdString() );
+    const wxString path( wxFileName( dlg.GetPath() ).GetFullPath() );
+
+    // copy pixel data from GPU to CPU then write to disc
+    const size_t pixelCount( mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y ) ;
+    std::vector<rt::color_t> hostMem( pixelCount, 0 );
+
+    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+    cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
+    }
+
+    rt::Bitmap bmp( mGLCanvas->ImageSize(), hostMem );
+    bmp.Write( path.ToStdString() );
+  }
+  catch( const std::exception& e )
+  {
+    OnLogMessage( std::string( "Error: " ) + e.what() );
+  }
+}
+
+void MainFrame::OnLogMessage( const std::string& msg )
+{
+  mLogTextBox->WriteText( ( msg + "\n" ) );
 }
