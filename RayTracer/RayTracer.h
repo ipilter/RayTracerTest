@@ -2,6 +2,7 @@
 
 #include "Common\Math.h"
 #include "Common\Sptr.h"
+#include "Common\Color.h"
 
 namespace rt
 {
@@ -13,7 +14,7 @@ public:
   RayTracer( const math::uvec2& pixelBufferSize );
   ~RayTracer();
 
-  void Trace( uint32_t* pixelBufferPtr
+  void Trace( rt::color_t* pixelBufferPtr
               , const uint32_t sampleCount
               , const float fov
               , const float focalLength

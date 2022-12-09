@@ -13,7 +13,7 @@ RayTracer::~RayTracer()
   delete mImpl;
 }
 
-void RayTracer::Trace( uint32_t* pixelBufferPtr
+void RayTracer::Trace( rt::color_t* pixelBufferPtr
                        , const uint32_t sampleCount
                        , const float fov
                        , const float focalLength

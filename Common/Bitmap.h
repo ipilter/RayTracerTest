@@ -4,14 +4,14 @@
 #include <fstream>
 
 #include "HostUtils.h"
+#include "Color.h"
 #include "Math.h"
+
+namespace rt
+{
 
 class Bitmap
 {
-public:
-  using channel_t = uint8_t;
-  using color_t = uint32_t;
-
 public:
   Bitmap( const math::uvec2& size, const color_t fillColor = 0x00000000 )
     : mSize( size )
@@ -53,18 +53,6 @@ public:
     Header header( mSize.x, mSize.y );
     header.Write( ostream );
     ostream.write( reinterpret_cast<const char*>( &mImageData.front() ), sizeof( color_t ) * mSize.x * mSize.y );
-  }
-
-public:
-  static channel_t GetComponent( const color_t& color, const uint32_t& idx )
-  {
-    static const std::pair<uint32_t, uint32_t> params[]{ {0x00FF0000, 16}, {0x0000FF00, 8}, {0x000000FF, 0}, {0xFF000000, 24} };
-    return static_cast<channel_t>( ( color & params[idx].first ) >> params[idx].second );
-  }
-
-  static color_t GetColor( const channel_t r = 0, const channel_t g = 0, const channel_t b = 0, const channel_t a = 255 )
-  {
-    return ( b << 0 ) | ( g << 8 ) | ( r << 16 ) | ( a << 24 );
   }
 
 private:
@@ -139,3 +127,5 @@ private:
     ColorHeader mColorHeader;
   };
 };
+
+}

@@ -2,6 +2,7 @@
 
 #include "Common\Math.h"
 #include "Common\Sptr.h"
+#include "Common\Color.h"
 
 namespace gl
 {
@@ -20,7 +21,7 @@ public:
 
   const uint32_t& Id() const;
 
-  uint32_t* MapPboBuffer();
+  rt::color_t* MapPboBuffer();
   void UnMapPboBuffer();
 
 private:

@@ -5,6 +5,7 @@
 
 #include "Common\Logger.h"
 #include "Common\HostUtils.h"
+#include "Common\Color.h"
 
 // Wrapper around MapCudaResource / UnMapCudaResource CUDA calls for safety
 GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
@@ -13,7 +14,7 @@ GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
   mGLCanvas.MapCudaResource( mGLCanvas.GetFrontPbo() );
 }
 
-uint32_t* GLCanvas::CudaResourceGuard::GetDevicePtr()
+rt::color_t* GLCanvas::CudaResourceGuard::GetDevicePtr()
 {
   return mGLCanvas.GetMappedCudaPointer( mGLCanvas.GetFrontPbo() );
 }
@@ -211,8 +212,8 @@ void GLCanvas::CreateTextures()
 
   // init PBO data
   {
-    uint32_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
-    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, util::Color( 10, 10, 10 ) );
+    rt::color_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
+    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::Color( 10, 10, 10 ) );
     mPBOs.back()->UnMapPboBuffer();
   }
 
@@ -306,9 +307,9 @@ void GLCanvas::UnMapCudaResource( const gl::PBO::uptr& pbo )
   }
 }
 
-uint32_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
+rt::color_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
 {
-  uint32_t* ptr = nullptr;
+  rt::color_t* ptr = nullptr;
   size_t mapped_size = 0;
 
   // TODO searching every time
@@ -320,7 +321,7 @@ uint32_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
   return ptr;
 }
 
-uint32_t* GLCanvas::GetRenderTarget()
+rt::color_t* GLCanvas::GetRenderTarget()
 {
   MapCudaResource( mPBOs.front() );
   return GetMappedCudaPointer( mPBOs.front() );

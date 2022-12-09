@@ -36,9 +36,9 @@ const uint32_t& PBO::Id() const
   return mId;
 }
 
-uint32_t* PBO::MapPboBuffer()
+rt::color_t* PBO::MapPboBuffer()
 {
-  return reinterpret_cast<uint32_t*>( glMapBuffer( GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY ) );
+  return reinterpret_cast<rt::color_t*>( glMapBuffer( GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY ) );
 }
 
 void PBO::UnMapPboBuffer()

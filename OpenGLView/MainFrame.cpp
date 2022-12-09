@@ -126,22 +126,22 @@ void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
 
 void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 {
-  wxFileDialog dlg( this, "Select file", wxEmptyString, wxEmptyString, "Bmp|*.bmp", wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+  wxFileDialog dlg( this, "Select file", wxEmptyString, "image01", "Bmp|*.bmp", wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   dlg.ShowModal();
   wxFileName fileName = dlg.GetPath();
   wxString path = fileName.GetFullPath();
 
   // copy pixel data from GPU to CPU then write to disc
   auto pixelCount = mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y;
-  std::vector<uint32_t> hostMem( pixelCount, 0 );
+  std::vector<rt::color_t> hostMem( pixelCount, 0 );
 
   GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-  cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( uint32_t ), cudaMemcpyDeviceToHost ) );
+  cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
   if ( err != cudaSuccess )
   {
     throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
   }
 
-  Bitmap bmp( mGLCanvas->ImageSize(), hostMem );
+  rt::Bitmap bmp( mGLCanvas->ImageSize(), hostMem );
   bmp.Write( path.ToStdString() );
 }

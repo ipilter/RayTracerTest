@@ -26,7 +26,7 @@ RayTracerImpl::~RayTracerImpl()
   }
 }
 
-void RayTracerImpl::Trace( uint32_t* pixelBufferPtr
+void RayTracerImpl::Trace( rt::color_t* pixelBufferPtr
             , const uint32_t sampleCount
             , const float fov
             , const float focalLength
@@ -59,7 +59,7 @@ void RayTracerImpl::Resize( const math::uvec2& size )
   }
 }
 
-cudaError_t RayTracerImpl::RunRenderKernel( uint32_t* pixelBufferPtr
+cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
                                             , const math::uvec2& pixelBufferSize
                                             , rt::ThinLensCamera& camera
                                             , const uint32_t sampleCount

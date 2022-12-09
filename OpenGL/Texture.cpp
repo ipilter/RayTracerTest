@@ -45,7 +45,7 @@ void Texture::UnbindTextureUnit()
   glBindTextureUnit( 0, 0 );
 }
 
-void Texture::CreateFromArray( const uint32_t* array )  // TODO: let channel count and bytes per channel be also param from outside (fully descirbe the incoming pixel data)
+void Texture::CreateFromArray( const rt::color_t* array )  // TODO: let channel count and bytes per channel be also param from outside (fully descirbe the incoming pixel data)
 {
   glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, mSize.x, mSize.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, array );
 }

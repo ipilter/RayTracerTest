@@ -24,7 +24,7 @@ public:
     CudaResourceGuard( GLCanvas& glCanvas );
     ~CudaResourceGuard();
 
-    uint32_t* GetDevicePtr();
+    rt::color_t* GetDevicePtr();
 
   private:
     GLCanvas& mGLCanvas;
@@ -62,12 +62,12 @@ private:
 
   void MapCudaResource( const gl::PBO::uptr& pbo );
   void UnMapCudaResource( const gl::PBO::uptr& pbo );
-  uint32_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
+  rt::color_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
 
   // Device memory access Create a CudaResourceGuard before calling GetFrontPbo().
   // Release of cuda resources is automatic
   gl::PBO::uptr& GetFrontPbo();
-  uint32_t* GetRenderTarget();
+  rt::color_t* GetRenderTarget();
   void ReleaseRenderTarget();
 
   void OnPaint( wxPaintEvent& event );

@@ -5,6 +5,7 @@
 #include <curand_kernel.h>
 
 #include "Common\Math.h"
+#include "Common\Color.h"
 
 #include "ThinLensCamera.cuh"
 
@@ -12,11 +13,11 @@ namespace rt
 {
 
 // Note: arguments MUST be by value or by pointer. Pointer MUST be in device mem space
-__global__ void RenderKernel( uint32_t* pixelBufferPtr
-                                     , const math::uvec2 pixelBufferSize
-                                     , rt::ThinLensCamera camera
-                                     , const uint32_t sampleCount
-                                     , curandState_t* randomStates )
+__global__ void RenderKernel( rt::color_t* pixelBufferPtr
+                              , const math::uvec2 pixelBufferSize
+                              , rt::ThinLensCamera camera
+                              , const uint32_t sampleCount
+                              , curandState_t* randomStates )
 {
   using namespace math;
 
