@@ -18,7 +18,7 @@ wxNamedTextControl::wxNamedTextControl( wxWindow* parent
 }
 
 wxNamedTextControl::~wxNamedTextControl()
-{ }
+{}
 
 wxString wxNamedTextControl::GetValue() const
 {

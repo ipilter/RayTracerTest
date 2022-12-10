@@ -1,6 +1,7 @@
 #include <gl/glew.h>
 
 #include "Mesh.h"
+#include "Common\Logger.h"
 
 namespace gl
 {
@@ -32,6 +33,8 @@ Mesh::Mesh( const std::vector<float>& vertices, const std::vector<uint32_t>& ind
   glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>( vertexOffset ) );
   glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>( texelOffset ) );
   glBindVertexArray( 0 );
+
+  logger::Logger::Instance() <<std::string( "Mesh [" ) << mVao << "] created with " << vertices.size() << " vertices, " << indices.size() << " indices\n";
 }
 
 Mesh::~Mesh()
@@ -39,6 +42,7 @@ Mesh::~Mesh()
   glDeleteVertexArrays( 1, &mVao );
   glDeleteBuffers( 1, &mVbo );
   glDeleteBuffers( 1, &mIbo );
+  logger::Logger::Instance() << std::string( "Mesh [" ) << mVao << "] destroyed\n";
 }
 
 void Mesh::Draw() const

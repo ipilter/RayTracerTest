@@ -1,6 +1,7 @@
 #include <gl/glew.h>
 
 #include "PBO.h"
+#include "Common\Logger.h"
 
 namespace gl
 {
@@ -18,6 +19,7 @@ PBO::~PBO()
 
 void PBO::Allocate( const uint32_t byteCount )
 {
+  logger::Logger::Instance() << std::string( "PBO created with " ) << byteCount << " bytes\n";
   glBufferData( GL_PIXEL_UNPACK_BUFFER, byteCount, NULL, GL_DYNAMIC_COPY ); // last param always can be this one ?
 }
 

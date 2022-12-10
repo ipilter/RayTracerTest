@@ -4,10 +4,12 @@
 #include <device_launch_parameters.h>
 #include <curand.h>
 
+#include "Common\Logger.h"
+
 namespace random
 {
 
-__global__ void InitRandom( uint32_t seed
+__global__ void InitRandomKernel( uint32_t seed
                             , math::uvec2 size
                             , curandState_t* states )
 {
@@ -29,13 +31,12 @@ __global__ void InitRandom( uint32_t seed
   states[offset] = state;
 }
 
-__host__  void RunInitRandom( const math::uvec2& size, curandState_t*& states )
+__host__  void RunInitRandomKernel( const math::uvec2& size, curandState_t*& states )
 {
   cudaError_t err = cudaMalloc( reinterpret_cast<void**>( &states ), size.x * size.y * sizeof( curandState_t ) );
   if ( err != cudaSuccess )
   {
-    // TODO handle error
-    const auto str = cudaGetErrorString( err );
+    throw std::runtime_error( std::string( "cudaMalloc failed. (" ) + cudaGetErrorString( err ) + ")\n");
   }
 
   const dim3 threadsPerBlock( 32, 32, 1 );
@@ -43,13 +44,12 @@ __host__  void RunInitRandom( const math::uvec2& size, curandState_t*& states )
                             , static_cast<uint32_t>( glm::ceil( size.y / static_cast<float>( threadsPerBlock.y ) ) )
                             , 1 );
 
-  InitRandom<<<blocksPerGrid, threadsPerBlock>>>( static_cast<uint32_t>( time( nullptr ) ), size, states );
-  cudaDeviceSynchronize();
+  InitRandomKernel<<<blocksPerGrid, threadsPerBlock>>>( static_cast<uint32_t>( time( nullptr ) ), size, states );
+
   err = cudaGetLastError();
   if ( err != cudaSuccess )
   {
-    // TODO handle error
-    const auto str = cudaGetErrorString( err );
+    throw std::runtime_error( std::string( "InitRandomKernel failed. (" ) + cudaGetErrorString( err ) + ")\n");
   }
 }
 

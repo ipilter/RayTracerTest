@@ -6,6 +6,8 @@
 #include "DeviceUtils.cuh"
 #include "RenderKernel.cuh"
 
+#include "Common\Logger.h"
+
 namespace rt
 {
 
@@ -13,7 +15,8 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& pixelBufferSize )
   : mPixelBufferSize( pixelBufferSize )
   , mRandomStates( nullptr )
 {
-  random::RunInitRandom( pixelBufferSize, mRandomStates );
+  logger::Logger::Instance() << "Raytracer created. Pixel buffer size: " << pixelBufferSize << "\n";
+  random::RunInitRandomKernel( pixelBufferSize, mRandomStates );
 }
 
 RayTracerImpl::~RayTracerImpl()
@@ -21,8 +24,7 @@ RayTracerImpl::~RayTracerImpl()
   const cudaError_t err = cudaFree( mRandomStates );
   if ( err != cudaSuccess )
   {
-    // TODO handle error
-    const auto str = cudaGetErrorString( err );
+    logger::Logger::Instance() << "Error: cudaFree failed freeing mRandomStates. (" << cudaGetErrorString( err ) << "\n";
   }
 }
 
@@ -48,15 +50,12 @@ void RayTracerImpl::Resize( const math::uvec2& size )
 {
   mPixelBufferSize = size;
   const cudaError_t err = cudaFree( mRandomStates );
-  if ( err == cudaSuccess )
+  if ( err != cudaSuccess )
   {
-    random::RunInitRandom( size, mRandomStates );
+    throw std::runtime_error( std::string( "cudaFree failed: " ) + cudaGetErrorString( err ) );
   }
-  else
-  {
-    // TODO handle error
-    const auto str = cudaGetErrorString( err );
-  }
+
+  random::RunInitRandomKernel( size, mRandomStates );
 }
 
 cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
@@ -86,6 +85,8 @@ cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
 
   float time = 0.0f;
   cudaEventElapsedTime( &time, start, stop );
+  logger::Logger::Instance() << "Render kernel runtime: " << time << " ms\n";
+
   return cudaGetLastError();
 }
 
