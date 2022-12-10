@@ -4,6 +4,8 @@
 #include "App.h"
 #include "MainFrame.h"
 
+#include "Common\Logger.h"
+
 App::App()
   : mMainFrame( nullptr )
   , mTextureSize( 3840 / 100, 2160 / 100 )
@@ -30,6 +32,7 @@ bool App::OnInit()
 
 int App::OnExit()
 {
+  logger::Logger::Instance() << "Exiting...\n";
   return 0;
 }
 

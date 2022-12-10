@@ -9,7 +9,7 @@ namespace gl
 Texture::Texture( const math::uvec2& size, const uint32_t wrap )
   : mId( 0 )
   , mSize( size )
-  , mChannelCount( 4 ) // GL_RGBA
+  , mChannelCount( 4 ) // GL_BGRA
 {
   glGenTextures( 1, &mId );
   glBindTexture( GL_TEXTURE_2D, mId );
@@ -92,7 +92,7 @@ uint32_t Texture::BytesPerChannel() const
       return sizeof( unsigned char );
     default:
     {
-      logger::Logger::Instance() << "unknown pixel type in Texture::BytesPerChannel: " << pixelType;
+      logger::Logger::Instance() << "unknown pixel type in Texture::BytesPerChannel: " << pixelType << "\n";
       return 0;
     }
   }

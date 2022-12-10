@@ -11,6 +11,7 @@
 #include "RayTracer\RayTracer.h"
 #include "Common\HostUtils.h"
 #include "Common\Bitmap.h"
+#include "Common\Logger.h"
 
 MainFrame::MainFrame( const math::uvec2& imageSize
                       , wxWindow* parent
@@ -24,6 +25,8 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mGLCanvas( std::make_unique<GLCanvas>( imageSize, mMainPanel, wxID_ANY ) )
   , mRayTracer( std::make_unique<rt::RayTracer>( imageSize ) )
 {
+  logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
+
   // Parameters
   mParameterControls["Width"] = new wxNamedTextControl(mControlPanel, wxID_ANY, "Width", util::ToString(imageSize.x));
   mParameterControls["Height"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y ) );
@@ -33,94 +36,118 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   mParameterControls["Aperture"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( 8.0 ) );
 
   // Buttons
-  mButtons["Resize"] = std::make_pair(new wxButton( mControlPanel, wxID_ANY, "Resize" ), std::bind( &MainFrame::OnResizeButton, this, std::placeholders::_1 ));
-  mButtons["Render"] = std::make_pair(new wxButton( mControlPanel, wxID_ANY, "Render" ), std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ));
-  mButtons["Stop"] = std::make_pair(new wxButton( mControlPanel, wxID_ANY, "Stop" ), std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ));
-  mButtons["Save"] = std::make_pair(new wxButton( mControlPanel, wxID_ANY, "Save" ), std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ));
+  mButtons["Resize"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Resize" ), std::bind( &MainFrame::OnResizeButton, this, std::placeholders::_1 ) );
+  mButtons["Render"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Render" ), std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) );
+  mButtons["Stop"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" ), std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ) );
+  mButtons["Save"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" ), std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) );
   
   // TODO add some default values for them
   InitializeUIElements();
+
 }
 
 MainFrame::~MainFrame()
-{}
+{
+  logger::Logger::Instance().SetMessageCallback();
+}
 
 void MainFrame::InitializeUIElements()
 {
-  wxBoxSizer* controlSizer( new wxBoxSizer( wxVERTICAL ) );
-  for ( auto ctrl : mParameterControls )
+  try
   {
-    controlSizer->Add( ctrl.second, 0, wxEXPAND );
-  }
+    wxBoxSizer* controlSizer( new wxBoxSizer( wxVERTICAL ) );
+    for ( auto ctrl : mParameterControls )
+    {
+      controlSizer->Add( ctrl.second, 0, wxEXPAND );
+    }
 
-  for ( auto btn : mButtons )
+    for ( auto btn : mButtons )
+    {
+      controlSizer->Add( btn.second.first, 0, wxEXPAND );
+      btn.second.first->Bind( wxEVT_COMMAND_BUTTON_CLICKED, btn.second.second );
+    }
+    mControlPanel->SetSizer( controlSizer );
+
+    wxBoxSizer* mainSizer( new wxBoxSizer( wxVERTICAL ) );
+    mainSizer->Add( mGLCanvas.get(), 90, wxEXPAND );
+    mainSizer->Add( mLogTextBox, 10, wxEXPAND );
+    mMainPanel->SetSizer( mainSizer );
+
+    wxBoxSizer* sizer( new wxBoxSizer( wxHORIZONTAL ) );
+    sizer->Add( mMainPanel, 1, wxEXPAND );
+    sizer->Add( mControlPanel, 0, wxEXPAND );
+    this->SetSizer( sizer );
+
+    // Some colors
+    for ( auto ctrl : mParameterControls )
+    {
+      ctrl.second->SetBackgroundColour( wxColor( 115, 115, 115 ) );
+    }
+
+    // TODO use common anchestor's ptr in a loop instead these
+    mLogTextBox->SetBackgroundColour( wxColor( 065, 065, 065 ) );
+    mLogTextBox->SetForegroundColour( wxColor( 200, 200, 200 ) );
+    mControlPanel->SetBackgroundColour( wxColor( 075, 075, 075 ) );
+
+    logger::Logger::Instance() << "UI Initialized\n";
+  }
+  catch( const std::exception& e )
   {
-    controlSizer->Add( btn.second.first, 0, wxEXPAND );
-    btn.second.first->Bind( wxEVT_COMMAND_BUTTON_CLICKED, btn.second.second );
+    logger::Logger::Instance() << "Error: " << e.what() << "\n";
   }
-  mControlPanel->SetSizer( controlSizer );
-
-  wxBoxSizer* mainSizer( new wxBoxSizer( wxVERTICAL ) );
-  mainSizer->Add( mGLCanvas.get(), 90, wxEXPAND );
-  mainSizer->Add( mLogTextBox, 10, wxEXPAND );
-  mMainPanel->SetSizer( mainSizer );
-
-  wxBoxSizer* sizer( new wxBoxSizer( wxHORIZONTAL ) );
-  sizer->Add( mMainPanel, 1, wxEXPAND );
-  sizer->Add( mControlPanel, 0, wxEXPAND );
-  this->SetSizer( sizer );
-
-  // Some colors
-  for ( auto ctrl : mParameterControls )
-  {
-    ctrl.second->SetBackgroundColour( wxColor( 115, 115, 115 ) );
-  }
-
-  // TODO use common anchestor's ptr in a loop instead these
-  mLogTextBox->SetBackgroundColour( wxColor( 065, 065, 065 ) );
-  mLogTextBox->SetForegroundColour( wxColor( 170, 170, 170 ) );
-  mControlPanel->SetBackgroundColour( wxColor( 075, 075, 075 ) );
-
-  OnLogMessage( "UI Initialized");
 }
 
 void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
 {
-  // Apply new settings if needed
-  const math::uvec2 newImageSize( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Width"]->GetValue().utf8_str() ) )
-                               , util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Height"]->GetValue().utf8_str() ) ) );
-  if ( mGLCanvas->ImageSize() == newImageSize )
+  try
   {
-    return;
+    // Apply new settings if needed
+    const math::uvec2 newImageSize( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Width"]->GetValue().utf8_str() ) )
+                                 , util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Height"]->GetValue().utf8_str() ) ) );
+    if ( mGLCanvas->ImageSize() == newImageSize )
+    {
+      return;
+    }
+
+    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
+    const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
+    const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
+    const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
+
+    mGLCanvas->Resize( newImageSize );
+    mRayTracer->Resize( newImageSize );
+
+    // Rerender frame with the new size
+    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
+
+    mGLCanvas->Update();
   }
-
-  const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
-  const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
-  const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
-  const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
-
-  mGLCanvas->Resize( newImageSize );
-  mRayTracer->Resize( newImageSize );
-
-  // Rerender frame with the new size
-  GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-  mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
-
-  mGLCanvas->Update();
+  catch( const std::exception& e )
+  {
+    logger::Logger::Instance() << "Error: " << e.what() << "\n";
+  }
 }
 
 void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
 {
-  const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
+  try
+  {
+    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
 
-  const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
-  const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
-  const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
+    const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
+    const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
+    const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
 
-  GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-  mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
+    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
 
-  mGLCanvas->Update();
+    mGLCanvas->Update();
+  }
+  catch( const std::exception& e )
+  {
+    logger::Logger::Instance() << "Error: " << e.what() << "\n";
+  }
 }
 
 void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
@@ -151,14 +178,15 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 
     rt::Bitmap bmp( mGLCanvas->ImageSize(), hostMem );
     bmp.Write( path.ToStdString() );
+    logger::Logger::Instance() << "Saved to " << path.ToStdString() << "\n";
   }
   catch( const std::exception& e )
   {
-    OnLogMessage( std::string( "Error: " ) + e.what() );
+    logger::Logger::Instance() << "Error: " << e.what() << "\n";
   }
 }
 
 void MainFrame::OnLogMessage( const std::string& msg )
 {
-  mLogTextBox->WriteText( ( msg + "\n" ) );
+  mLogTextBox->WriteText( msg );
 }

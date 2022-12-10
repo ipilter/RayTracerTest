@@ -18,4 +18,9 @@ Logger& Logger::Instance()
   return instance;
 }
 
+void Logger::SetMessageCallback( MessageCallBack callback )
+{
+  mMessageCallback = callback;
+}
+
 }

@@ -99,13 +99,11 @@ void GLCanvas::Update()
   }
   catch ( const std::exception& e )
   {
-    std::stringstream ss;
-    ss << "Step error: " << e.what();
+    logger::Logger::Instance() << "Error in GLCanvas::Update: " << e.what() << "\n";
   }
   catch ( ... )
   {
-    std::stringstream ss;
-    ss << "unknown Step error: ";
+    logger::Logger::Instance() << "Unknown error during GLCanvas::Update\n";
   }
 }
 
@@ -224,9 +222,7 @@ void GLCanvas::CreateTextures()
 
   // unbind PBO
   mPBOs.back()->Unbind();
-
-  std::stringstream ss;
-  ss << "Texture with dimensions " << mTextures.back()->Size().x << "x" << mTextures.back()->Size().y << " created";
+  logger::Logger::Instance() << "Texture with dimensions " << mTextures.back()->Size() << " created\n";
 }
 
 void GLCanvas::CreateShaders()
@@ -274,7 +270,6 @@ void GLCanvas::RegisterCudaResource( const gl::PBO::uptr& pbo )
     cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsNone );
     if ( err != cudaSuccess )
     {
-      // TODO handle error
       throw std::runtime_error( std::string( "cudaGraphicsGLRegisterBuffer failed: " ) + cudaGetErrorString( err ) );
     }
   }
