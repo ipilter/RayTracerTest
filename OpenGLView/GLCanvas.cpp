@@ -41,7 +41,7 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
   , mImageSize( imageSize )
   , mQuadSize( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f )
   , mPanningActive( false )
-  , mPreviousMousePosition( 0.0f, 0.0f )
+  , mPreviousMouseScreenPosition( 0.0f, 0.0f )
 {
   try
   {
@@ -393,11 +393,11 @@ void GLCanvas::OnMouseMove( wxMouseEvent& event )
     const math::vec2 worldPos( ScreenToWorld( screenPos ) );
     const math::ivec2 imagePos( WorldToImage( worldPos ) );
 
-    const math::vec2 mouse_delta( worldPos - ScreenToWorld( mPreviousMousePosition ) );
+    const math::vec2 mouse_delta( worldPos - ScreenToWorld( mPreviousMouseScreenPosition ) );
 
     mCameras.back()->Translate( math::vec3( mouse_delta, 0.0f ) );
 
-    mPreviousMousePosition = screenPos;
+    mPreviousMouseScreenPosition = screenPos;
     Refresh();
   }
 
@@ -437,7 +437,7 @@ void GLCanvas::OnMouseLeftUp( wxMouseEvent& event )
 
 void GLCanvas::OnMouseMiddleDown( wxMouseEvent& event )
 {
-  mPreviousMousePosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
+  mPreviousMouseScreenPosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
   mPanningActive = true;
 }
 
@@ -446,9 +446,11 @@ void GLCanvas::OnMouseMiddleUp( wxMouseEvent& /*event*/ )
   mPanningActive = false;
 }
 
-void GLCanvas::OnMouseLeave( wxMouseEvent& /*event*/ )
+void GLCanvas::OnMouseLeave( wxMouseEvent& event )
 {
   mPanningActive = false;
+
+  PropagateEventToMainFrame( event );
 }
 
 void GLCanvas::PropagateEventToMainFrame( wxEvent& event )

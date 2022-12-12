@@ -102,7 +102,7 @@ private:
   std::map<uint32_t, cudaGraphicsResource_t> mPboCudaResourceTable;
 
   bool mPanningActive;
-  math::vec2 mPreviousMousePosition;
+  math::vec2 mPreviousMouseScreenPosition;
 
   GLCanvas( const GLCanvas& ) = delete;
   GLCanvas( GLCanvas&& ) = delete;

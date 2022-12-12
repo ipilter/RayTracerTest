@@ -23,7 +23,9 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mControlPanel( new wxPanel( this, wxID_ANY ) )
   , mLogTextBox( new wxTextCtrl( mMainPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE ) )
   , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mMainPanel, wxID_ANY ) )
-  , mRayTracer( std::make_unique<rt::RayTracer>( imageSize ) )
+  , mRayTracer( std::make_unique<rt::RayTracer>( imageSize ) ) // set some default camera parameters here
+  , mCameraModeActive( false )
+  , mPreviousMouseScreenPosition( 0.0f, 0.0f )
 {
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
 
@@ -92,6 +94,7 @@ void MainFrame::InitializeUIElements()
     Bind( wxEVT_LEFT_UP, &MainFrame::OnMouseLeftUp, this );
     Bind( wxEVT_MOTION, &MainFrame::OnMouseMove, this );
     Bind( wxEVT_SHOW, &MainFrame::OnShow, this );
+    Bind( wxEVT_LEAVE_WINDOW, &MainFrame::OnMouseLeave, this );
 
     logger::Logger::Instance() << "UI Initialized\n";
   }
@@ -195,19 +198,48 @@ void MainFrame::OnLogMessage( const std::string& msg )
   mLogTextBox->WriteText( msg );
 }
 
-void MainFrame::OnMouseMove( wxMouseEvent& /*event*/ )
+void MainFrame::OnMouseMove( wxMouseEvent& event )
 {
-  logger::Logger::Instance() << "MainFrame::OnMouseMove\n";
+  if ( mCameraModeActive )
+  {
+    const math::vec2 screenPos( event.GetX(), event.GetY() );
+
+    // calculate angle along x and y axes 
+    const math::vec2 vCX( glm::normalize( math::vec2( screenPos.x, 0.0f ) ) );
+    const math::vec2 vPX( glm::normalize( math::vec2( mPreviousMouseScreenPosition.x, 0.0f ) ) );
+
+    const math::vec2 vCY( glm::normalize( math::vec2( 0.0f, screenPos.y ) ) );
+    const math::vec2 vPY( glm::normalize( math::vec2( 0.0f, mPreviousMouseScreenPosition.y ) ) );
+
+    const float dotX = glm::dot( vCX, vPX );
+    const float dotY = glm::dot( vCY, vPY );
+
+    const float aX = glm::acos( dotX );
+    const float aY = glm::acos( dotY );
+    logger::Logger::Instance() << "MainFrame::OnMouseMove screen pos: aX: " << aX << ", aY: " << aY << "\n";
+
+    // apply on the raytracer camer
+
+    // request a new render from the tracer with the current parameters
+
+    mPreviousMouseScreenPosition = screenPos;
+  }
 }
 
-void MainFrame::OnMouseLeftDown( wxMouseEvent& /*event*/ )
+void MainFrame::OnMouseLeftDown( wxMouseEvent& event )
 {
-  logger::Logger::Instance() << "MainFrame::OnMouseLeftDown\n";
+  mPreviousMouseScreenPosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
+  mCameraModeActive = true;
 }
 
 void MainFrame::OnMouseLeftUp( wxMouseEvent& /*event*/ )
 {
-  logger::Logger::Instance() << "MainFrame::OnMouseLeftUp\n";
+  mCameraModeActive = false;
+}
+
+void MainFrame::OnMouseLeave( wxMouseEvent& /*event*/ )
+{
+  mCameraModeActive = false;
 }
 
 void MainFrame::OnShow( wxShowEvent& event )

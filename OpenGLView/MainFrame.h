@@ -26,6 +26,7 @@ private:
   void OnMouseMove( wxMouseEvent& event );
   void OnMouseLeftDown( wxMouseEvent& event );
   void OnMouseLeftUp( wxMouseEvent& event );
+  void OnMouseLeave( wxMouseEvent& event );
   void OnShow( wxShowEvent& event );
 
   wxPanel* mMainPanel;
@@ -39,4 +40,7 @@ private:
 
   GLCanvas::uptr mGLCanvas;
   rt::RayTracer::uptr mRayTracer;
+
+  bool mCameraModeActive;
+  math::vec2 mPreviousMouseScreenPosition;
 };
