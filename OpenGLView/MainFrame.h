@@ -23,6 +23,10 @@ private:
   void OnStopButton( wxCommandEvent& event );
   void OnSaveButton( wxCommandEvent& event );
   void OnLogMessage( const std::string& msg );
+  void OnMouseMove( wxMouseEvent& event );
+  void OnMouseLeftDown( wxMouseEvent& event );
+  void OnMouseLeftUp( wxMouseEvent& event );
+  void OnShow( wxShowEvent& event );
 
   wxPanel* mMainPanel;
   wxPanel* mControlPanel;

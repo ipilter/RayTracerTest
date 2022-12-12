@@ -22,7 +22,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mMainPanel( new wxPanel( this, wxID_ANY ) )
   , mControlPanel( new wxPanel( this, wxID_ANY ) )
   , mLogTextBox( new wxTextCtrl( mMainPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE ) )
-  , mGLCanvas( std::make_unique<GLCanvas>( imageSize, mMainPanel, wxID_ANY ) )
+  , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mMainPanel, wxID_ANY ) )
   , mRayTracer( std::make_unique<rt::RayTracer>( imageSize ) )
 {
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
@@ -43,7 +43,6 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   
   // TODO add some default values for them
   InitializeUIElements();
-
 }
 
 MainFrame::~MainFrame()
@@ -88,6 +87,11 @@ void MainFrame::InitializeUIElements()
     mLogTextBox->SetBackgroundColour( wxColor( 065, 065, 065 ) );
     mLogTextBox->SetForegroundColour( wxColor( 200, 200, 200 ) );
     mControlPanel->SetBackgroundColour( wxColor( 075, 075, 075 ) );
+
+    Bind( wxEVT_LEFT_DOWN, &MainFrame::OnMouseLeftDown, this );
+    Bind( wxEVT_LEFT_UP, &MainFrame::OnMouseLeftUp, this );
+    Bind( wxEVT_MOTION, &MainFrame::OnMouseMove, this );
+    Bind( wxEVT_SHOW, &MainFrame::OnShow, this );
 
     logger::Logger::Instance() << "UI Initialized\n";
   }
@@ -189,4 +193,28 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 void MainFrame::OnLogMessage( const std::string& msg )
 {
   mLogTextBox->WriteText( msg );
+}
+
+void MainFrame::OnMouseMove( wxMouseEvent& /*event*/ )
+{
+  logger::Logger::Instance() << "MainFrame::OnMouseMove\n";
+}
+
+void MainFrame::OnMouseLeftDown( wxMouseEvent& /*event*/ )
+{
+  logger::Logger::Instance() << "MainFrame::OnMouseLeftDown\n";
+}
+
+void MainFrame::OnMouseLeftUp( wxMouseEvent& /*event*/ )
+{
+  logger::Logger::Instance() << "MainFrame::OnMouseLeftUp\n";
+}
+
+void MainFrame::OnShow( wxShowEvent& event )
+{
+  if ( event.IsShown() )
+  {
+    wxCommandEvent e;
+    OnRenderButton( e );
+  }
 }

@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include "GLCanvas.h"
+#include "MainFrame.h"
 #include "ResourceHandler.h"
 
 #include "Common\Logger.h"
@@ -26,6 +27,7 @@ GLCanvas::CudaResourceGuard::~CudaResourceGuard()
 
 // OpenGL render surface with CUDA connection
 GLCanvas::GLCanvas( const math::uvec2& imageSize
+                    , MainFrame* mainFrame
                     , wxWindow* parent
                     , wxWindowID id
                     , const int* attribList
@@ -35,6 +37,7 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
                     , const wxString& name
                     , const wxPalette& palette )
   : wxGLCanvas( parent, id, attribList, pos, size, style, name, palette )
+  , mMainFrame( mainFrame )
   , mImageSize( imageSize )
   , mQuadSize( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f )
   , mPanningActive( false )
@@ -42,6 +45,11 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
 {
   try
   {
+    if ( mMainFrame == nullptr )
+    {
+      throw std::runtime_error( "mainframe pointer is nullptr" );
+    }
+
     Initialize();
     CreateMeshes();
     CreateTextures();
@@ -392,6 +400,8 @@ void GLCanvas::OnMouseMove( wxMouseEvent& event )
     mPreviousMousePosition = screenPos;
     Refresh();
   }
+
+  PropagateEventToMainFrame( event );
 }
 
 void GLCanvas::OnMouseWheel( wxMouseEvent& event )
@@ -415,11 +425,15 @@ void GLCanvas::OnMouseRightDown( wxMouseEvent& /*event*/ )
 void GLCanvas::OnMouseRightUp( wxMouseEvent& /*event*/ )
 {}
 
-void GLCanvas::OnMouseLeftDown( wxMouseEvent& /*event*/ )
-{}
+void GLCanvas::OnMouseLeftDown( wxMouseEvent& event )
+{
+  PropagateEventToMainFrame( event );
+}
 
-void GLCanvas::OnMouseLeftUp( wxMouseEvent& /*event*/ )
-{}
+void GLCanvas::OnMouseLeftUp( wxMouseEvent& event )
+{
+  PropagateEventToMainFrame( event );
+}
 
 void GLCanvas::OnMouseMiddleDown( wxMouseEvent& event )
 {
@@ -435,4 +449,9 @@ void GLCanvas::OnMouseMiddleUp( wxMouseEvent& /*event*/ )
 void GLCanvas::OnMouseLeave( wxMouseEvent& /*event*/ )
 {
   mPanningActive = false;
+}
+
+void GLCanvas::PropagateEventToMainFrame( wxEvent& event )
+{
+  mMainFrame->GetEventHandler()->ProcessEvent( event );
 }

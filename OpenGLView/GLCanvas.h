@@ -15,6 +15,8 @@
 #include "OpenGL\Shader.h"
 #include "OpenGL\Texture.h"
 
+class MainFrame;
+
 class GLCanvas : public wxGLCanvas, public virtual ISptr<GLCanvas>
 {
 public:
@@ -32,14 +34,15 @@ public:
 
 public:
   GLCanvas( const math::uvec2& imageSize
-          , wxWindow* parent
-          , wxWindowID id = wxID_ANY
-          , const int* attribList = 0
-          , const wxPoint& pos = wxDefaultPosition
-          , const wxSize& size = wxDefaultSize
-          , long style = 0L
-          , const wxString& name = L"GLCanvas"
-          , const wxPalette& palette = wxNullPalette );
+            , MainFrame* mainFrame
+            , wxWindow* parent
+            , wxWindowID id = wxID_ANY
+            , const int* attribList = 0
+            , const wxPoint& pos = wxDefaultPosition
+            , const wxSize& size = wxDefaultSize
+            , long style = 0L
+            , const wxString& name = L"GLCanvas"
+            , const wxPalette& palette = wxNullPalette );
   ~GLCanvas();
 
   void Resize( const math::uvec2& imageSize );
@@ -82,8 +85,11 @@ private:
   void OnMouseLeave( wxMouseEvent& event );
   void OnMouseWheel( wxMouseEvent& event );
 
+  void PropagateEventToMainFrame( wxEvent& event );
+
   std::unique_ptr<wxGLContext> mContext;
 
+  MainFrame* mMainFrame;
   math::uvec2 mImageSize; // pixels
   math::vec2 mQuadSize;   // world
 
