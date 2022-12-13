@@ -2,6 +2,7 @@
 
 #include <map>
 #include <gl/glew.h> // before any gl related include
+
 #include "WxMain.h"
 #include <wx/glcanvas.h>
 #include <cuda_gl_interop.h>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wx\splitter.h>
+
 #include "GLCanvas.h"
 #include "WxNamedTextControl.h"
 #include "RayTracer\RayTracer.h"
@@ -17,6 +19,7 @@ public:
 
 private:
   void InitializeUIElements();
+  void RequestRender();
 
   void OnResizeButton( wxCommandEvent& event );
   void OnRenderButton( wxCommandEvent& event );
@@ -29,6 +32,8 @@ private:
   void OnMouseLeave( wxMouseEvent& event );
   void OnShow( wxShowEvent& event );
 
+  wxSplitterWindow* mMainSplitter;
+  wxSplitterWindow* mLeftSplitter;
   wxPanel* mMainPanel;
   wxPanel* mControlPanel;
   wxTextCtrl* mLogTextBox;

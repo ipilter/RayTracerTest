@@ -19,18 +19,21 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                       , const wxPoint& pos
                       , const wxSize& size )
   : wxFrame( parent, wxID_ANY, title, pos, size )
-  , mMainPanel( new wxPanel( this, wxID_ANY ) )
-  , mControlPanel( new wxPanel( this, wxID_ANY ) )
-  , mLogTextBox( new wxTextCtrl( mMainPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE ) )
-  , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mMainPanel, wxID_ANY ) )
+  , mMainSplitter( new wxSplitterWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_BORDER | wxSP_LIVE_UPDATE ) )
+  , mLeftSplitter( new wxSplitterWindow( mMainSplitter, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_BORDER | wxSP_LIVE_UPDATE ) )
+  , mMainPanel( new wxPanel( mMainSplitter ) )
+  , mControlPanel( new wxPanel( mMainSplitter ) )
+  , mLogTextBox( new wxTextCtrl( mLeftSplitter, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE ) )
+  , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mLeftSplitter ) )
   , mRayTracer( std::make_unique<rt::RayTracer>( imageSize ) ) // set some default camera parameters here
   , mCameraModeActive( false )
   , mPreviousMouseScreenPosition( 0.0f, 0.0f )
 {
+  // attach this object to the logger. Any log message sent to the log will propagated to the OnLogMessage callback
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
 
   // Parameters
-  mParameterControls["Width"] = new wxNamedTextControl(mControlPanel, wxID_ANY, "Width", util::ToString(imageSize.x));
+  mParameterControls["Width"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x ) );
   mParameterControls["Height"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y ) );
   mParameterControls["Samples"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( 32 ) );
   mParameterControls["Fov"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( 70 ) );
@@ -42,13 +45,14 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   mButtons["Render"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Render" ), std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) );
   mButtons["Stop"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" ), std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ) );
   mButtons["Save"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" ), std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) );
-  
+
   // TODO add some default values for them
   InitializeUIElements();
 }
 
 MainFrame::~MainFrame()
 {
+  // detach this object from the logger
   logger::Logger::Instance().SetMessageCallback();
 }
 
@@ -69,15 +73,13 @@ void MainFrame::InitializeUIElements()
     }
     mControlPanel->SetSizer( controlSizer );
 
-    wxBoxSizer* mainSizer( new wxBoxSizer( wxVERTICAL ) );
-    mainSizer->Add( mGLCanvas.get(), 90, wxEXPAND );
-    mainSizer->Add( mLogTextBox, 10, wxEXPAND );
-    mMainPanel->SetSizer( mainSizer );
+    mLeftSplitter->SplitHorizontally( mGLCanvas.get(), mLogTextBox, -100 );
+    mLeftSplitter->SetMinimumPaneSize( 100 );
+    mLeftSplitter->SetSashGravity( 1 );
 
-    wxBoxSizer* sizer( new wxBoxSizer( wxHORIZONTAL ) );
-    sizer->Add( mMainPanel, 1, wxEXPAND );
-    sizer->Add( mControlPanel, 0, wxEXPAND );
-    this->SetSizer( sizer );
+    mMainSplitter->SplitVertically( mLeftSplitter, mControlPanel, -200 );
+    mMainSplitter->SetMinimumPaneSize( 200 );
+    mMainSplitter->SetSashGravity( 1 );
 
     // Some colors
     for ( auto ctrl : mParameterControls )
@@ -97,6 +99,27 @@ void MainFrame::InitializeUIElements()
     Bind( wxEVT_LEAVE_WINDOW, &MainFrame::OnMouseLeave, this );
 
     logger::Logger::Instance() << "UI Initialized\n";
+  }
+  catch( const std::exception& e )
+  {
+    logger::Logger::Instance() << "Error: " << e.what() << "\n";
+  }
+}
+
+void MainFrame::RequestRender()
+{
+  try
+  {
+    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
+
+    const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
+    const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
+    const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
+
+    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
+
+    mGLCanvas->Update();
   }
   catch( const std::exception& e )
   {
@@ -138,23 +161,7 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
 
 void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
 {
-  try
-  {
-    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
-
-    const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
-    const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
-    const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
-
-    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
-
-    mGLCanvas->Update();
-  }
-  catch( const std::exception& e )
-  {
-    logger::Logger::Instance() << "Error: " << e.what() << "\n";
-  }
+  RequestRender();
 }
 
 void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
@@ -246,7 +253,6 @@ void MainFrame::OnShow( wxShowEvent& event )
 {
   if ( event.IsShown() )
   {
-    wxCommandEvent e;
-    OnRenderButton( e );
+    RequestRender();
   }
 }
