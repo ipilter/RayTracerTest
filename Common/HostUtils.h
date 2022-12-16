@@ -3,7 +3,6 @@
 #include <sstream>
 #include <fstream>
 #include <stdexcept>
-#include <random>
 
 namespace util
 {
@@ -27,17 +26,6 @@ inline std::string ToString( const T& t )
   return ss.str();
 }
 
-// TODO T can be float or double only!
-template<class T>
-inline T Random( T min = 0, T max = 1 )
-{
-  static std::random_device rd;
-  static std::mt19937 gen( rd() );
-  static std::uniform_real_distribution<T> dist( min, max );
-
-  return dist( gen );
-}
-
 inline std::string ReadTextFile( const std::string& path )
 {
   std::ifstream is( path );
@@ -46,12 +34,6 @@ inline std::string ReadTextFile( const std::string& path )
     throw std::runtime_error( std::string( "cannot open file: " ) + path );
   }
   return std::string( ( std::istreambuf_iterator<char>( is ) ), std::istreambuf_iterator<char>() );
-}
-
-template<class T>
-inline T Clamp( const T a, const T b, const T v )
-{
-  return v < a ? a : v > b ? b : v;
 }
 
 template<typename T>

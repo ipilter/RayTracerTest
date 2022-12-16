@@ -81,7 +81,7 @@ cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
   //cudaDeviceSynchronize();
 
   cudaEventRecord( stop, 0 );
-  cudaEventSynchronize( stop );
+  cudaEventSynchronize( stop ); // TODO: make this switchable (on/off)
 
   float time = 0.0f;
   cudaEventElapsedTime( &time, start, stop );

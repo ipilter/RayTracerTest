@@ -20,4 +20,8 @@ private:
 
   MainFrame::uptr mMainFrame;
   math::uvec2 mTextureSize;
+  uint32_t mSampleCount;
+  float mFov;
+  float mFocalLength;
+  float mAperture;
 };

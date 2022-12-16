@@ -33,7 +33,7 @@
     <ClCompile Include="ResourceHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WxNamedTextControl.cpp">
+    <ClCompile Include="NamedTextControl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,7 +56,7 @@
     <ClInclude Include="ResourceHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WxNamedTextControl.h">
+    <ClInclude Include="NamedTextControl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

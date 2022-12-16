@@ -14,6 +14,10 @@
 #include "Common\Logger.h"
 
 MainFrame::MainFrame( const math::uvec2& imageSize
+                      , const uint32_t sampleCount
+                      , const float fov
+                      , const float focalLength
+                      , const float aperture
                       , wxWindow* parent
                       , std::wstring title
                       , const wxPoint& pos
@@ -33,18 +37,38 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
 
   // Parameters
-  mParameterControls["Width"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x ) );
-  mParameterControls["Height"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y ) );
-  mParameterControls["Samples"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( 32 ) );
-  mParameterControls["Fov"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( 70 ) );
-  mParameterControls["Focal l."] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( 50 ) );
-  mParameterControls["Aperture"] = new wxNamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( 8.0 ) );
+  mParameterControls["Width"] = new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
+                                                      , 100.0f, 1.0f, 1000.0f
+                                                      , 1.0f, 100000.0f );
+  mParameterControls["Height"] = new NamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y )
+                                                       , 100.0f, 1.0f, 1000.0f
+                                                       , 1.0f, 100000.0f );
+  mParameterControls["Samples"] = new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
+                                                        , 1.0f, 1.0f, 100.0f
+                                                        , 1.0f, 10000.0f );
+  mParameterControls["Fov"] = new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
+                                                    , 1.0f, 0.1f, 5.0f
+                                                    , 1.0f, 179.0f );
+  mParameterControls["Focal l."] = new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
+                                                         , 10.0f, 1.0f, 50.0f
+                                                         , 1.0f, 10000.0f );
+  mParameterControls["Aperture"] = new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
+                                                         , 1.0f, 0.1f, 2.0f
+                                                         , 0.0f, 22.0f ); // min == 0 = pinhole
 
   // Buttons
-  mButtons["Resize"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Resize" ), std::bind( &MainFrame::OnResizeButton, this, std::placeholders::_1 ) );
-  mButtons["Render"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Render" ), std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) );
-  mButtons["Stop"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" ), std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ) );
-  mButtons["Save"] = std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" ), std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) );
+  mButtons.push_back( std::make_pair( "Render", 
+                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Render" )
+                                                      , std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) ) ) );
+  mButtons.push_back( std::make_pair( "Stop", 
+                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" )
+                                                      , std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ) ) ) );
+  mButtons.push_back( std::make_pair( "Resize", 
+                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Resize" )
+                                                      , std::bind( &MainFrame::OnResizeButton, this, std::placeholders::_1 ) ) ) );
+  mButtons.push_back( std::make_pair( "Save", 
+                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" )
+                                                      , std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) ) ) );
 
   // TODO add some default values for them
   InitializeUIElements();
@@ -71,6 +95,7 @@ void MainFrame::InitializeUIElements()
       controlSizer->Add( btn.second.first, 0, wxEXPAND );
       btn.second.first->Bind( wxEVT_COMMAND_BUTTON_CLICKED, btn.second.second );
     }
+
     mControlPanel->SetSizer( controlSizer );
 
     mLeftSplitter->SplitHorizontally( mGLCanvas.get(), mLogTextBox, -100 );
@@ -98,7 +123,19 @@ void MainFrame::InitializeUIElements()
     Bind( wxEVT_SHOW, &MainFrame::OnShow, this );
     Bind( wxEVT_LEAVE_WINDOW, &MainFrame::OnMouseLeave, this );
 
-    logger::Logger::Instance() << "UI Initialized\n";
+    // Parameter connections
+    auto renderCallback = [this]()
+    {
+      RequestRender();
+    };
+
+    mParameterControls["Aperture"]->SetOnMouseWheelCallback( renderCallback );
+    mParameterControls["Focal l."]->SetOnMouseWheelCallback( renderCallback );
+    mParameterControls["Fov"]->SetOnMouseWheelCallback( renderCallback );
+    mParameterControls["Samples"]->SetOnMouseWheelCallback( renderCallback );
+
+    // Place it on the screen center
+    CenterOnScreen();
   }
   catch( const std::exception& e )
   {

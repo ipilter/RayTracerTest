@@ -7,6 +7,7 @@
 #include "Common\Logger.h"
 #include "Common\HostUtils.h"
 #include "Common\Color.h"
+#include "Common\Timer.h"
 
 // Wrapper around MapCudaResource / UnMapCudaResource CUDA calls for safety
 GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
@@ -50,11 +51,15 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
       throw std::runtime_error( "mainframe pointer is nullptr" );
     }
 
+    Timer t;
+    t.start();
     Initialize();
     CreateMeshes();
     CreateTextures();
     CreateShaders();
     CreateView();
+    t.stop();
+    logger::Logger::Instance() << "Initialize: " << t.ms() << " ms\n";
   }
   catch ( const std::exception& e )
   {
@@ -73,6 +78,9 @@ GLCanvas::~GLCanvas()
 
 void GLCanvas::Resize( const math::uvec2& imageSize )
 {
+  Timer t;
+  t.start();
+
   // TODO: Validate if cleanup is proper
   mImageSize = imageSize;
   mQuadSize = math::vec2( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f );
@@ -90,12 +98,18 @@ void GLCanvas::Resize( const math::uvec2& imageSize )
   mPBOs.clear();
 
   CreateTextures();
+
+  t.stop();
+  logger::Logger::Instance() << "Resize: " << t.ms() << " ms\n";
 }
 
 void GLCanvas::Update()
 {
   try
   {
+    Timer t; // heavy stuff is async here !!
+    t.start();
+
     mPBOs.back()->Bind();
 
     mTextures.back()->Bind();
@@ -103,7 +117,11 @@ void GLCanvas::Update()
     mTextures.back()->Unbind();
 
     mPBOs.back()->Unbind();
-    Refresh();
+
+    Refresh(); // async
+
+    t.stop();
+    logger::Logger::Instance() << "Update: " << t.ms() << " ms\n";
   }
   catch ( const std::exception& e )
   {

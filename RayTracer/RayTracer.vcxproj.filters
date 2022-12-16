@@ -7,44 +7,56 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{fd4a80fc-6cfb-4c50-8bdf-41fef13a9ec3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Interface">
+      <UniqueIdentifier>{5c91dcfa-ca0c-4e4b-b6fd-fb324925d215}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Implementation">
+      <UniqueIdentifier>{d66bb825-40e7-4814-9668-d9902e9c3cb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Filkes\Interface">
+      <UniqueIdentifier>{54d02377-3722-44e9-be7b-24bba7c3aa7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Filkes\Implementation">
+      <UniqueIdentifier>{b2b81e66-bc14-44aa-9ce3-d7e50e793cb9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Random.cu">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Implementation</Filter>
     </CudaCompile>
     <CudaCompile Include="RayTracerImpl.cu">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Implementation</Filter>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RayTracerImpl.cuh">
-      <Filter>Header Filkes</Filter>
-    </ClInclude>
     <ClInclude Include="DeviceUtils.cuh">
-      <Filter>Header Filkes</Filter>
+      <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
     <ClInclude Include="Random.cuh">
-      <Filter>Header Filkes</Filter>
+      <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
     <ClInclude Include="Ray.cuh">
-      <Filter>Header Filkes</Filter>
+      <Filter>Header Filkes\Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="RayTracerImpl.cuh">
+      <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
     <ClInclude Include="RenderData.cuh">
-      <Filter>Header Filkes</Filter>
-    </ClInclude>
-    <ClInclude Include="ThinLensCamera.cuh">
-      <Filter>Header Filkes</Filter>
-    </ClInclude>
-    <ClInclude Include="RayTracer.h">
-      <Filter>Header Filkes</Filter>
+      <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
     <ClInclude Include="RenderKernel.cuh">
-      <Filter>Header Filkes</Filter>
+      <Filter>Header Filkes\Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="ThinLensCamera.cuh">
+      <Filter>Header Filkes\Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="RayTracer.h">
+      <Filter>Header Filkes\Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RayTracer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Interface</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

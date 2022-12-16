@@ -3,13 +3,17 @@
 #include <wx\splitter.h>
 
 #include "GLCanvas.h"
-#include "WxNamedTextControl.h"
+#include "NamedTextControl.h"
 #include "RayTracer\RayTracer.h"
 
 class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 {
 public:
   MainFrame( const math::uvec2& imageSize
+             , const uint32_t sampleCount
+             , const float fov
+             , const float focalLength
+             , const float aperture
              , wxWindow* parent
              , std::wstring title
              , const wxPoint& pos
@@ -39,9 +43,9 @@ private:
   wxTextCtrl* mLogTextBox;
 
   // TODO lazy string as key
-  std::unordered_map<std::string, wxNamedTextControl*> mParameterControls;
+  std::unordered_map<std::string, NamedTextControl*> mParameterControls;
   using EventCallBack = std::function<void( wxCommandEvent& )>;
-  std::unordered_map<std::string, std::pair<wxButton*, EventCallBack>> mButtons;
+  std::list<std::pair<std::string, std::pair<wxButton*, EventCallBack>>> mButtons;
 
   GLCanvas::uptr mGLCanvas;
   rt::RayTracer::uptr mRayTracer;

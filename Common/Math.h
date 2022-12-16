@@ -1,9 +1,10 @@
 #pragma once
 
 #include <iomanip>
+#include <random>
 
 // TODO: glm in CUDA emits tonns of warngings about annotated defaulted/deleted methds.. 
-//       warning supressed in CUDA props
+//       warnings are supressed in CUDA props
 #define GLM_FORCE_XYZW_ONLY
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -24,6 +25,17 @@ using mat4 = glm::mat4;
 constexpr float cPi = 3.141592653589793f;
 constexpr float cEps = 1e-9f;
 
+}
+
+// TODO T can be float or double only!
+template<class T>
+inline T Random( T min = 0, T max = 1 )
+{
+  static std::random_device rd;
+  static std::mt19937 gen( rd() );
+  static std::uniform_real_distribution<T> dist( min, max );
+
+  return dist( gen );
 }
 
 inline std::ostream& operator << ( std::ostream& stream, const math::ivec2& v )
