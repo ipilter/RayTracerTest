@@ -11,9 +11,16 @@
 namespace rt
 {
 
-RayTracerImpl::RayTracerImpl( const math::uvec2& pixelBufferSize )
+RayTracerImpl::RayTracerImpl( const math::uvec2& pixelBufferSize
+                              , const float fov
+                              , const float focalLength
+                              , const float aperture )
   : mPixelBufferSize( pixelBufferSize )
   , mRandomStates( nullptr )
+  , mCamera( new rt::ThinLensCamera( math::vec3( 0.0f, 0.0f, 0.0f )
+                                     , math::vec3( 0.0f, 0.0f, -1.0f )
+                                     , math::vec3( 0.0f, 1.0f, 0.0f )
+                                     , fov, focalLength, aperture ) )
 {
   logger::Logger::Instance() << "Raytracer created. Pixel buffer size: " << pixelBufferSize << "\n";
   random::RunInitRandomKernel( pixelBufferSize, mRandomStates );
@@ -28,18 +35,9 @@ RayTracerImpl::~RayTracerImpl()
   }
 }
 
-void RayTracerImpl::Trace( rt::color_t* pixelBufferPtr
-            , const uint32_t sampleCount
-            , const float fov
-            , const float focalLength
-            , const float aperture )
+void RayTracerImpl::Trace( rt::color_t* pixelBufferPtr, const uint32_t sampleCount )
 {
-  rt::ThinLensCamera camera( math::vec3( 0.0f, 0.0f, 0.0f )
-                             , math::vec3( 0.0f, 0.0f, -1.0f )
-                             , math::vec3( 0.0f, 1.0f, 0.0f )
-                             , fov, focalLength, aperture );
-
-  cudaError_t err = RunRenderKernel( pixelBufferPtr, mPixelBufferSize, camera, sampleCount, mRandomStates );
+  cudaError_t err = RunRenderKernel( pixelBufferPtr, mPixelBufferSize, *mCamera, sampleCount, mRandomStates );
   if ( err != cudaSuccess )
   {
     throw std::runtime_error( std::string( "RunRenderKernel failed: " ) + cudaGetErrorString( err ) );
@@ -56,6 +54,20 @@ void RayTracerImpl::Resize( const math::uvec2& size )
   }
 
   random::RunInitRandomKernel( size, mRandomStates );
+}
+
+void RayTracerImpl::SetCameraParameters( const float fov
+                                         , const float focalLength
+                                         , const float aperture )
+{
+  mCamera->Fov( fov );
+  mCamera->FocalLength( focalLength );
+  mCamera->Aperture( aperture );
+}
+
+void RayTracerImpl::RotateCamera( const math::uvec2& angles )
+{
+  mCamera->Rotate( angles );
 }
 
 cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr

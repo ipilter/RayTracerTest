@@ -11,16 +11,18 @@ class RayTracerImpl;
 class RayTracer : public ISptr<RayTracer>
 {
 public:
-  RayTracer( const math::uvec2& pixelBufferSize );
+  RayTracer( const math::uvec2& pixelBufferSize
+             , const float fov
+             , const float focalLength
+             , const float aperture );
   ~RayTracer();
 
-  void Trace( rt::color_t* pixelBufferPtr
-              , const uint32_t sampleCount
-              , const float fov
-              , const float focalLength
-              , const float aperture );
-
+  void Trace( rt::color_t* pixelBufferPtr, const uint32_t sampleCount );
   void Resize( const math::uvec2& size );
+  void SetCameraParameters( const float fov
+                            , const float focalLength
+                            , const float aperture );
+  void RotateCamera( const math::uvec2& angles );
 
 private:
   RayTracerImpl* mImpl;

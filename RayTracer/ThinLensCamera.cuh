@@ -2,6 +2,7 @@
 
 #include "Common\Sptr.h"
 #include "Common\Math.h"
+#include <glm/gtx/quaternion.hpp>
 #include "Ray.cuh"
 #include "DeviceUtils.cuh"
 #include "Random.cuh"
@@ -96,6 +97,17 @@ public:
   __host__ __device__ void FocalLength( const float l )
   {
     mFocalLength = l;
+  }
+
+  __host__ __device__ void Rotate( const math::vec2& angles )
+  {
+    //const glm::quat q( 1.0f, 0.0f, 1.0f, 0.0f );
+    //const glm::quat qj = glm::conjugate( q );
+    
+    // Rotate the view direction vector around the Y and X axis
+
+    // Recompute transformation - need to store current pos, up, view vectors !!
+    //CalculateCameraTransformation()
   }
 
 private:

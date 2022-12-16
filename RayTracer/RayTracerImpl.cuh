@@ -14,16 +14,18 @@ namespace rt
 class RayTracerImpl
 {
 public:
-  RayTracerImpl( const math::uvec2& pixelBufferSize );
+  RayTracerImpl( const math::uvec2& pixelBufferSize
+                 , const float fov
+                 , const float focalLength
+                 , const float aperture );
   ~RayTracerImpl();
 
-  void Trace( rt::color_t* pixelBufferPtr
-              , const uint32_t sampleCount
-              , const float fov
-              , const float focalLength
-              , const float aperture );
-
+  void Trace( rt::color_t* pixelBufferPtr, const uint32_t sampleCount );
   void Resize( const math::uvec2& size );
+  void SetCameraParameters( const float fov
+                            , const float focalLength
+                            , const float aperture );
+  void RotateCamera( const math::uvec2& angles );
 
 private:
   cudaError_t RunRenderKernel( rt::color_t* pixelBufferPtr
@@ -34,6 +36,7 @@ private:
 
   math::uvec2 mPixelBufferSize;
   curandState_t* mRandomStates;
+  std::unique_ptr<rt::ThinLensCamera> mCamera;
 };
 
 }

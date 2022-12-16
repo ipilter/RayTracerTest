@@ -12,6 +12,7 @@
 #include "Common\HostUtils.h"
 #include "Common\Bitmap.h"
 #include "Common\Logger.h"
+#include "Common\Math.h"
 
 MainFrame::MainFrame( const math::uvec2& imageSize
                       , const uint32_t sampleCount
@@ -27,9 +28,9 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mLeftSplitter( new wxSplitterWindow( mMainSplitter, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_BORDER | wxSP_LIVE_UPDATE ) )
   , mMainPanel( new wxPanel( mMainSplitter ) )
   , mControlPanel( new wxPanel( mMainSplitter ) )
-  , mLogTextBox( new wxTextCtrl( mLeftSplitter, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE ) )
+  , mLogTextBox( new wxTextCtrl( mLeftSplitter, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY ) )
   , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mLeftSplitter ) )
-  , mRayTracer( std::make_unique<rt::RayTracer>( imageSize ) ) // set some default camera parameters here
+  , mRayTracer( std::make_unique<rt::RayTracer>( imageSize, fov, focalLength, aperture ) ) // set some default camera parameters here
   , mCameraModeActive( false )
   , mPreviousMouseScreenPosition( 0.0f, 0.0f )
 {
@@ -124,15 +125,19 @@ void MainFrame::InitializeUIElements()
     Bind( wxEVT_LEAVE_WINDOW, &MainFrame::OnMouseLeave, this );
 
     // Parameter connections
-    auto renderCallback = [this]()
+    auto cameraParameterCallback = [this]()
     {
+      const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
+      const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
+      const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
+      mRayTracer->SetCameraParameters( fov, focalLength, aperture );
       RequestRender();
     };
 
-    mParameterControls["Aperture"]->SetOnMouseWheelCallback( renderCallback );
-    mParameterControls["Focal l."]->SetOnMouseWheelCallback( renderCallback );
-    mParameterControls["Fov"]->SetOnMouseWheelCallback( renderCallback );
-    mParameterControls["Samples"]->SetOnMouseWheelCallback( renderCallback );
+    mParameterControls["Aperture"]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls["Focal l."]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls["Fov"]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls["Samples"]->SetOnMouseWheelCallback( [this]() { RequestRender(); } );
 
     // Place it on the screen center
     CenterOnScreen();
@@ -149,13 +154,8 @@ void MainFrame::RequestRender()
   {
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
 
-    const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
-    const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
-    const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
-
     GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
-
+    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
     mGLCanvas->Update();
   }
   catch( const std::exception& e )
@@ -177,18 +177,12 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
     }
 
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
-    const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
-    const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
-    const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
 
     mGLCanvas->Resize( newImageSize );
     mRayTracer->Resize( newImageSize );
 
     // Rerender frame with the new size
-    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount, fov, focalLength, aperture );
-
-    mGLCanvas->Update();
+    RequestRender();
   }
   catch( const std::exception& e )
   {
@@ -247,24 +241,34 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
   if ( mCameraModeActive )
   {
     const math::vec2 screenPos( event.GetX(), event.GetY() );
-
+    
     // calculate angle along x and y axes 
-    const math::vec2 vCX( glm::normalize( math::vec2( screenPos.x, 0.0f ) ) );
-    const math::vec2 vPX( glm::normalize( math::vec2( mPreviousMouseScreenPosition.x, 0.0f ) ) );
+    // 
+    // using the two screen space vectors to calculate the angle between them is not working as
+    // the vectors origin is at [0, 0] and the screen left side produce`s bigger angles than the
+    // right side. This is due to the triangles formed by the three points (origin, prev, current) are different!
+    //   const float dot = glm::dot( glm::normalize( screenPos ), glm::normalize( mPreviousMouseScreenPosition ) );
+    //    const float a = glm::acos( dot );
+    //
+    // so instead we work with distances as they remain the same in every part of the screen.
+    // the idea is the following: assign an angle to the screen's dimensions. For example 180 deg for the full screen width.
+    // let say the width is 100 pixel then 1 pixel mouse movement yields 180/100 degree angle
+    
+    // user defined and precomputed values
+    const math::vec2 clientSize( static_cast<float>( GetClientSize().x, static_cast<float>( GetClientSize().y ) ) );
+    const math::vec2 anglePerAxes( 180.0f, 180.0f );
+    const math::vec2 anglePerPixel( anglePerAxes / clientSize );
 
-    const math::vec2 vCY( glm::normalize( math::vec2( 0.0f, screenPos.y ) ) );
-    const math::vec2 vPY( glm::normalize( math::vec2( 0.0f, mPreviousMouseScreenPosition.y ) ) );
+    // calculations for every event
+    const math::vec2 delta = mPreviousMouseScreenPosition - screenPos;
+    const math::vec2 angle( anglePerPixel * delta );
+    logger::Logger::Instance() << "MainFrame::OnMouseMove delta: " << delta << ", angle: " << angle << "\n";
 
-    const float dotX = glm::dot( vCX, vPX );
-    const float dotY = glm::dot( vCY, vPY );
-
-    const float aX = glm::acos( dotX );
-    const float aY = glm::acos( dotY );
-    logger::Logger::Instance() << "MainFrame::OnMouseMove screen pos: aX: " << aX << ", aY: " << aY << "\n";
-
-    // apply on the raytracer camer
+    // apply on the raytracer camera
+    mRayTracer->RotateCamera( angle );
 
     // request a new render from the tracer with the current parameters
+    RequestRender();
 
     mPreviousMouseScreenPosition = screenPos;
   }

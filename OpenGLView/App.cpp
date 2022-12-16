@@ -33,13 +33,13 @@ bool App::OnInit()
   mMainFrame = std::make_unique<MainFrame>( mTextureSize
                                             , mSampleCount
                                             , mFov
-                                            , mSampleCount
+                                            , mFocalLength
                                             , mAperture
                                             , nullptr
                                             , std::wstring( L"CudaGL Tracer 0.0.0" )
                                             , wxDefaultPosition
-                                            , wxSize{ static_cast<int>( display.GetGeometry().width / 2.0f )
-                                                      , static_cast<int>( display.GetGeometry().height / 2.0f ) } );
+                                            , wxSize{ static_cast<int>( display.GetGeometry().width * 0.75f )
+                                                      , static_cast<int>( display.GetGeometry().height * 0.75f ) } );
   return mMainFrame->Show( true );
 }
 
