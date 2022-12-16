@@ -4,4 +4,9 @@
 
 #include "resource.h"
 
-std::string LoadStringResource( const int id, const int type );
+namespace resource
+{
+
+std::string LoadString( const int id, const int type );
+
+}

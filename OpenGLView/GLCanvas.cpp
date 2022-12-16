@@ -253,8 +253,8 @@ void GLCanvas::CreateTextures()
 
 void GLCanvas::CreateShaders()
 {
-  const std::string vertexShaderSrc( LoadStringResource( VERTEX_SHADER, TEXTFILE ) );
-  const std::string fragentShaderSrc( LoadStringResource( FRAGMENT_SHADER, TEXTFILE ) );
+  const std::string vertexShaderSrc( resource::LoadString( VERTEX_SHADER, TEXTFILE ) );
+  const std::string fragentShaderSrc( resource::LoadString( FRAGMENT_SHADER, TEXTFILE ) );
   mShaders.push_back( std::make_unique<gl::Shader>( vertexShaderSrc, fragentShaderSrc ) );
 }
 
