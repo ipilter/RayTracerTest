@@ -38,24 +38,24 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
 
   // Parameters
-  mParameterControls["Width"] = new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
-                                                      , 100.0f, 1.0f, 1000.0f
-                                                      , 1.0f, 100000.0f );
-  mParameterControls["Height"] = new NamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y )
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
+                                                                        , 100.0f, 1.0f, 1000.0f
+                                                                        , 1.0f, 100000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y )
                                                        , 100.0f, 1.0f, 1000.0f
-                                                       , 1.0f, 100000.0f );
-  mParameterControls["Samples"] = new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
+                                                       , 1.0f, 100000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
                                                         , 1.0f, 1.0f, 100.0f
-                                                        , 1.0f, 10000.0f );
-  mParameterControls["Fov"] = new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
+                                                        , 1.0f, 10000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
                                                     , 1.0f, 0.1f, 5.0f
-                                                    , 1.0f, 179.0f );
-  mParameterControls["Focal l."] = new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
+                                                    , 1.0f, 179.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
                                                          , 10.0f, 1.0f, 50.0f
-                                                         , 1.0f, 10000.0f );
-  mParameterControls["Aperture"] = new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
-                                                         , 1.0f, 0.1f, 2.0f
-                                                         , 0.0f, 22.0f ); // min == 0 = pinhole
+                                                         , 1.0f, 10000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
+                                                      , 1.0f, 0.1f, 2.0f
+                                                      , 0.0f, 22.0f ) ); // min == 0 = pinhole
 
   // Buttons
   mButtons.push_back( std::make_pair( "Render", 
@@ -85,10 +85,13 @@ void MainFrame::InitializeUIElements()
 {
   try
   {
+    // Place it on the screen center
+    CenterOnScreen();
+
     wxBoxSizer* controlSizer( new wxBoxSizer( wxVERTICAL ) );
     for ( auto ctrl : mParameterControls )
     {
-      controlSizer->Add( ctrl.second, 0, wxEXPAND );
+      controlSizer->Add( ctrl, 0, wxEXPAND );
     }
 
     for ( auto btn : mButtons )
@@ -110,7 +113,7 @@ void MainFrame::InitializeUIElements()
     // Some colors
     for ( auto ctrl : mParameterControls )
     {
-      ctrl.second->SetBackgroundColour( wxColor( 115, 115, 115 ) );
+      ctrl->SetBackgroundColour( wxColor( 115, 115, 115 ) );
     }
 
     // TODO use common anchestor's ptr in a loop instead these
@@ -127,20 +130,17 @@ void MainFrame::InitializeUIElements()
     // Parameter connections
     auto cameraParameterCallback = [this]()
     {
-      const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Fov"]->GetValue().utf8_str() ) ) );
-      const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Focal l."]->GetValue().utf8_str() ) ) );
-      const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Aperture"]->GetValue().utf8_str() ) ) );
+      const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
+      const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
+      const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
       mRayTracer->SetCameraParameters( fov, focalLength, aperture );
       RequestRender();
     };
 
-    mParameterControls["Aperture"]->SetOnMouseWheelCallback( cameraParameterCallback );
-    mParameterControls["Focal l."]->SetOnMouseWheelCallback( cameraParameterCallback );
-    mParameterControls["Fov"]->SetOnMouseWheelCallback( cameraParameterCallback );
-    mParameterControls["Samples"]->SetOnMouseWheelCallback( [this]() { RequestRender(); } );
-
-    // Place it on the screen center
-    CenterOnScreen();
+    mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestRender(); } );
+    mParameterControls[3]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls[4]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
   }
   catch( const std::exception& e )
   {
@@ -152,7 +152,7 @@ void MainFrame::RequestRender()
 {
   try
   {
-    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
+    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
 
     GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
     mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
@@ -169,14 +169,14 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
   try
   {
     // Apply new settings if needed
-    const math::uvec2 newImageSize( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Width"]->GetValue().utf8_str() ) )
-                                 , util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Height"]->GetValue().utf8_str() ) ) );
+    const math::uvec2 newImageSize( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[0]->GetValue().utf8_str() ) )
+                                 , util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[1]->GetValue().utf8_str() ) ) );
     if ( mGLCanvas->ImageSize() == newImageSize )
     {
       return;
     }
 
-    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls["Samples"]->GetValue().utf8_str() ) ) );
+    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
 
     mGLCanvas->Resize( newImageSize );
     mRayTracer->Resize( newImageSize );
@@ -261,11 +261,11 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
 
     // calculations for every event
     const math::vec2 delta = mPreviousMouseScreenPosition - screenPos;
-    const math::vec2 angle( anglePerPixel * delta );
-    logger::Logger::Instance() << "MainFrame::OnMouseMove delta: " << delta << ", angle: " << angle << "\n";
+    const math::vec2 angle( anglePerPixel * delta * math::vec2( 1.0, -1.0 ) );// TODO mouse settings -> invert Y
+    logger::Logger::Instance() << "MainFrame::OnMouseMove delta: " << delta << ", angle: " << angle << "\n"; 
 
     // apply on the raytracer camera
-    mRayTracer->RotateCamera( angle );
+    mRayTracer->RotateCamera( glm::radians( angle ) );
 
     // request a new render from the tracer with the current parameters
     RequestRender();

@@ -8,6 +8,7 @@
 #define GLM_FORCE_XYZW_ONLY
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace math
 {
@@ -22,10 +23,10 @@ using vec4 = glm::vec4;
 
 using mat4 = glm::mat4;
 
+using quat = glm::quat;
+
 constexpr float cPi = 3.141592653589793f;
 constexpr float cEps = 1e-9f;
-
-}
 
 // TODO T can be float or double only!
 template<class T>
@@ -36,6 +37,22 @@ inline T Random( T min = 0, T max = 1 )
   static std::uniform_real_distribution<T> dist( min, max );
 
   return dist( gen );
+}
+
+inline quat MakeQuaternion( const vec3& axis, const float angle )
+{
+  const float halfAngle = angle / 2.0f;
+  const float sinAngle = glm::sin( halfAngle );
+  const vec3 realPart( axis * sinAngle );
+  return quat( glm::cos( halfAngle ), realPart );
+}
+
+inline math::vec3 Rotate( const vec3& vector, const vec3& axis, const float angle )
+{
+  const glm::quat q( glm::normalize( MakeQuaternion( axis, angle ) ) );
+  return q * vector;
+}
+
 }
 
 inline std::ostream& operator << ( std::ostream& stream, const math::ivec2& v )

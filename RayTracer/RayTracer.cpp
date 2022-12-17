@@ -36,7 +36,7 @@ void RayTracer::SetCameraParameters( const float fov
   mImpl->SetCameraParameters( fov, focalLength, aperture );
 }
 
-void RayTracer::RotateCamera( const math::uvec2& angles )
+void RayTracer::RotateCamera( const math::vec2& angles )
 {
   mImpl->RotateCamera( angles );
 }

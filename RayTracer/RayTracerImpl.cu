@@ -18,7 +18,7 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& pixelBufferSize
   : mPixelBufferSize( pixelBufferSize )
   , mRandomStates( nullptr )
   , mCamera( new rt::ThinLensCamera( math::vec3( 0.0f, 0.0f, 0.0f )
-                                     , math::vec3( 0.0f, 0.0f, -1.0f )
+                                     , math::vec3( 1.0f, 1.0f, 1.0f )
                                      , math::vec3( 0.0f, 1.0f, 0.0f )
                                      , fov, focalLength, aperture ) )
 {
@@ -65,7 +65,7 @@ void RayTracerImpl::SetCameraParameters( const float fov
   mCamera->Aperture( aperture );
 }
 
-void RayTracerImpl::RotateCamera( const math::uvec2& angles )
+void RayTracerImpl::RotateCamera( const math::vec2& angles )
 {
   mCamera->Rotate( angles );
 }
@@ -97,7 +97,7 @@ cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
 
   float time = 0.0f;
   cudaEventElapsedTime( &time, start, stop );
-  logger::Logger::Instance() << "Render kernel runtime: " << time << " ms\n";
+  logger::Logger::Instance() << "Render kernel runtime: " << time << " ms, ~" << 1000.0f / time << " fps\n";
 
   return cudaGetLastError();
 }

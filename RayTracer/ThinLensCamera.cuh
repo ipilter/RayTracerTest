@@ -2,6 +2,7 @@
 
 #include "Common\Sptr.h"
 #include "Common\Math.h"
+#include "Common\Logger.h"
 #include <glm/gtx/quaternion.hpp>
 #include "Ray.cuh"
 #include "DeviceUtils.cuh"
@@ -19,11 +20,15 @@ public:
                                       , const float fov // field of view [deg]
                                       , const float focalLength // focal length [mm?]
                                       , const float aperture ) // radius of lens [mm?]
-    : mCameraTransformation( CalculateCameraTransformation( position, target, upGuide ) )
+    : mPosition( position )
+    , mTarget( target )
+    , mUpGuide( upGuide )
     , mFov( glm::radians( fov ) )
     , mFocalLength( focalLength )
     , mAperture( aperture )
-  {}
+  {
+    CalculateCameraTransformation();
+  }
 
   __device__ Ray GetRay( const math::uvec2& pixel
                          , const math::uvec2& dimensions
@@ -99,15 +104,15 @@ public:
     mFocalLength = l;
   }
 
-  __host__ __device__ void Rotate( const math::vec2& angles )
+  __host__ void Rotate( const math::vec2& angles )
   {
-    //const glm::quat q( 1.0f, 0.0f, 1.0f, 0.0f );
-    //const glm::quat qj = glm::conjugate( q );
-    
-    // Rotate the view direction vector around the Y and X axis
+    const math::vec3 forward = glm::normalize( mPosition - mTarget );
+    const math::vec3 right = glm::normalize( glm::cross( mUpGuide, forward ) );
+    mTarget = math::Rotate( mTarget, mUpGuide, angles.x );
+    mTarget = math::Rotate( mTarget, right, angles.y );
+    CalculateCameraTransformation();
 
-    // Recompute transformation - need to store current pos, up, view vectors !!
-    //CalculateCameraTransformation()
+    //logger::Logger::Instance() << "mTarget: " << mTarget << "\n";
   }
 
 private:
@@ -134,20 +139,21 @@ private:
     return Ray( originWS, direction );
   }
 
-  __host__ __device__ static  math::mat4 CalculateCameraTransformation( const math::vec3& position
-                                                                        , const math::vec3& target
-                                                                        , const math::vec3& upGuide )
+  __host__ __device__ void CalculateCameraTransformation()
   {
-    const math::vec3 forward = glm::normalize( position - target );
-    const math::vec3 right = glm::normalize( glm::cross( upGuide, forward ) );
+    const math::vec3 forward = glm::normalize( mPosition - mTarget );
+    const math::vec3 right = glm::normalize( glm::cross( mUpGuide, forward ) );
     const math::vec3 up = glm::cross( forward, right );
 
-    return math::mat4( right.x, up.x, forward.x, 0.0f
-                       , right.y, up.y, forward.y, 0.0f
-                       , right.z, up.z, forward.z, 0.0f
-                       , position.x, position.y, position.z, 1.0f );
+    mCameraTransformation = math::mat4( right.x, up.x, forward.x, 0.0f
+                                        , right.y, up.y, forward.y, 0.0f
+                                        , right.z, up.z, forward.z, 0.0f
+                                        , mPosition.x, mPosition.y, mPosition.z, 1.0f );
   }
 
+  math::vec3 mPosition;
+  math::vec3 mTarget;
+  math::vec3 mUpGuide;
   float mFov;         // field of view
   float mFocalLength; // focal point distance. The distance at which items in the image are in focus.
   float mAperture;    // radius of the aperture

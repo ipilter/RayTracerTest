@@ -25,7 +25,7 @@ public:
   void SetCameraParameters( const float fov
                             , const float focalLength
                             , const float aperture );
-  void RotateCamera( const math::uvec2& angles );
+  void RotateCamera( const math::vec2& angles );
 
 private:
   cudaError_t RunRenderKernel( rt::color_t* pixelBufferPtr

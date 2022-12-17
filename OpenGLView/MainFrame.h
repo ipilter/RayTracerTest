@@ -43,9 +43,9 @@ private:
   wxTextCtrl* mLogTextBox;
 
   // TODO lazy string as key
-  std::unordered_map<std::string, NamedTextControl*> mParameterControls;
+  std::vector<NamedTextControl*> mParameterControls;
   using EventCallBack = std::function<void( wxCommandEvent& )>;
-  std::list<std::pair<std::string, std::pair<wxButton*, EventCallBack>>> mButtons;
+  std::vector<std::pair<std::string, std::pair<wxButton*, EventCallBack>>> mButtons;
 
   GLCanvas::uptr mGLCanvas;
   rt::RayTracer::uptr mRayTracer;
