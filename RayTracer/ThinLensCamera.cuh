@@ -138,8 +138,8 @@ private:
     const math::vec3 xAxis( 1.0f, 0.0f, 0.0f );
     const math::vec3 yAxis( 0.0f, 1.0f, 0.0f );
 
-    const math::quat qX( glm::normalize( glm::angleAxis( mRotationAngles[0], xAxis ) ) );
-    const math::quat qY( glm::normalize( glm::angleAxis( mRotationAngles[1], yAxis ) ) ); 
+    const math::quat qX( glm::angleAxis( mRotationAngles[0], xAxis ) );
+    const math::quat qY( glm::angleAxis( mRotationAngles[1], yAxis ) ); 
     mCameraTransformation = glm::mat4_cast( qY * qX );
   }
 

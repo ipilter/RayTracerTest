@@ -174,13 +174,11 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
   {
     // Apply new settings if needed
     const math::uvec2 newImageSize( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[0]->GetValue().utf8_str() ) )
-                                 , util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[1]->GetValue().utf8_str() ) ) );
+                                    , util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[1]->GetValue().utf8_str() ) ) );
     if ( mGLCanvas->ImageSize() == newImageSize )
     {
       return;
     }
-
-    const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
 
     mGLCanvas->Resize( newImageSize );
     mRayTracer->Resize( newImageSize );
@@ -258,29 +256,32 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
     
     // user defined and precomputed values
     const math::vec2 clientSize( static_cast<float>( GetClientSize().x, static_cast<float>( GetClientSize().y ) ) );
-    const math::vec2 anglePerPixel( mAnglePerAxes / clientSize ); // [degrees]
+    
+    // apply the image aspect ratio to the angle per view dimensions to try to make the movement equal on both axis
+    // TODO double check this
+    math::vec2 aspect( mGLCanvas->ImageSize().x / static_cast<float>( mGLCanvas->ImageSize().y ), 1.0f );
+    if ( mGLCanvas->ImageSize().y > mGLCanvas->ImageSize().x )
+    {
+      aspect = math::vec2( mGLCanvas->ImageSize().y / static_cast<float>( mGLCanvas->ImageSize().x ), 1.0f );
+    }
+    
+    const math::vec2 anglePerPixel( mAnglePerAxes * aspect / clientSize ); // [degrees]
 
     // if SHIFT key is pressed rotating around Y axis only
     // if CONTROL key is pressed rotating around X axis only
     const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
                                 , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
 
-    // calculations for every event
-    math::vec2 delta = mPreviousMouseScreenPosition - screenPos;
+    // get mouse delta in screen space
+    math::vec2 delta( screenPos - mPreviousMouseScreenPosition );
 
     // movement along the view's X axis makes the camera rotate around it's Y axis
     // likewise movement along the view's Y axis makes it rotate around it's X axis
     // swaping the delta values here makes the rest of the computation simpler: .x -> rotates around X, .y around Y.
     std::swap( delta.x, delta.y );
 
-    // TODO mouse settings -> invert rotation around X axis (mouse up-down)
-    delta *= math::vec2( -1.0, 1.0 );
-
-    // current angle based on the delta and the angle resoulution
-    const math::vec2 angle( anglePerPixel * delta );
-
-    // rotate the camera
-    mRayTracer->RotateCamera( glm::radians( angle ) );
+    // rotate the camera with the new angles
+    mRayTracer->RotateCamera( glm::radians( anglePerPixel * delta ) );
 
     // request a new render from the tracer with the current parameters
     RequestRender();
