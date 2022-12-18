@@ -12,6 +12,8 @@ class RayTracer : public ISptr<RayTracer>
 {
 public:
   RayTracer( const math::uvec2& pixelBufferSize
+             , const math::vec3& cameraPosition
+             , const math::vec2& cameraAngles
              , const float fov
              , const float focalLength
              , const float aperture );

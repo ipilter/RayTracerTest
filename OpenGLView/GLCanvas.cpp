@@ -111,17 +111,15 @@ void GLCanvas::Update()
     t.start();
 
     mPBOs.back()->Bind();
-
     mTextures.back()->Bind();
     mTextures.back()->UpdateFromPBO();
     mTextures.back()->Unbind();
-
     mPBOs.back()->Unbind();
 
     Refresh(); // async
 
     t.stop();
-    logger::Logger::Instance() << "Update: " << t.ms() << " ms\n";
+    //logger::Logger::Instance() << "Update: " << t.ms() << " ms\n";
   }
   catch ( const std::exception& e )
   {

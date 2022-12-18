@@ -15,14 +15,12 @@ class ThinLensCamera
 {
 public:
   __host__ __device__ ThinLensCamera( const math::vec3& position
-                                      , const math::vec3& target
-                                      , const math::vec3& upGuide
+                                      , const math::vec2& rotationAngles
                                       , const float fov // field of view [deg]
                                       , const float focalLength // focal length [mm?]
                                       , const float aperture ) // radius of lens [mm?]
     : mPosition( position )
-    , mTarget( target )
-    , mUpGuide( upGuide )
+    , mRotationAngles( rotationAngles )
     , mFov( glm::radians( fov ) )
     , mFocalLength( focalLength )
     , mAperture( aperture )
@@ -106,13 +104,8 @@ public:
 
   __host__ void Rotate( const math::vec2& angles )
   {
-    const math::vec3 forward = glm::normalize( mPosition - mTarget );
-    const math::vec3 right = glm::normalize( glm::cross( mUpGuide, forward ) );
-    mTarget = math::Rotate( mTarget, mUpGuide, angles.x );
-    mTarget = math::Rotate( mTarget, right, angles.y );
+    mRotationAngles += angles;
     CalculateCameraTransformation();
-
-    //logger::Logger::Instance() << "mTarget: " << mTarget << "\n";
   }
 
 private:
@@ -141,22 +134,23 @@ private:
 
   __host__ __device__ void CalculateCameraTransformation()
   {
-    const math::vec3 forward = glm::normalize( mPosition - mTarget );
-    const math::vec3 right = glm::normalize( glm::cross( mUpGuide, forward ) );
-    const math::vec3 up = glm::cross( forward, right );
+    // TODO store these in a permanent place (no static in device code)
+    const math::vec3 xAxis( 1.0f, 0.0f, 0.0f );
+    const math::vec3 yAxis( 0.0f, 1.0f, 0.0f );
 
-    mCameraTransformation = math::mat4( right.x, up.x, forward.x, 0.0f
-                                        , right.y, up.y, forward.y, 0.0f
-                                        , right.z, up.z, forward.z, 0.0f
-                                        , mPosition.x, mPosition.y, mPosition.z, 1.0f );
+    const math::quat qX( glm::normalize( glm::angleAxis( mRotationAngles[0], xAxis ) ) );
+    const math::quat qY( glm::normalize( glm::angleAxis( mRotationAngles[1], yAxis ) ) ); 
+    mCameraTransformation = glm::mat4_cast( qY * qX );
   }
 
+private:
   math::vec3 mPosition;
-  math::vec3 mTarget;
-  math::vec3 mUpGuide;
+  math::vec2 mRotationAngles;
+
   float mFov;         // field of view
   float mFocalLength; // focal point distance. The distance at which items in the image are in focus.
   float mAperture;    // radius of the aperture
+
   math::mat4 mCameraTransformation; // position and orientation
 };
 

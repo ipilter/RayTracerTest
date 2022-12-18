@@ -5,10 +5,14 @@ namespace rt
 {
 
 RayTracer::RayTracer( const math::uvec2& imageSize
+                      , const math::vec3& cameraPosition
+                      , const math::vec2& cameraAngles
                       , const float fov
                       , const float focalLength
                       , const float aperture )
   : mImpl( new RayTracerImpl( imageSize
+                              , cameraPosition
+                              , cameraAngles
                               , fov
                               , focalLength
                               , aperture ) )

@@ -21,7 +21,10 @@ private:
   MainFrame::uptr mMainFrame;
   math::uvec2 mTextureSize;
   uint32_t mSampleCount;
+  math::vec3 mCameraPosition;
+  math::vec2 mCameraAngles;
   float mFov;
   float mFocalLength;
   float mAperture;
+  math::vec2 mAnglesPerAxes;
 };

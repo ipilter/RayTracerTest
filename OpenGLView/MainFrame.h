@@ -11,9 +11,12 @@ class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 public:
   MainFrame( const math::uvec2& imageSize
              , const uint32_t sampleCount
+             , const math::vec3& cameraPosition
+             , const math::vec2& cameraAngles
              , const float fov
              , const float focalLength
              , const float aperture
+             , const math::vec2& anglesPerAxes
              , wxWindow* parent
              , std::wstring title
              , const wxPoint& pos
@@ -52,4 +55,5 @@ private:
 
   bool mCameraModeActive;
   math::vec2 mPreviousMouseScreenPosition;
+  math::vec2 mAnglePerAxes;
 };

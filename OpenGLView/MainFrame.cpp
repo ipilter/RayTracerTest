@@ -16,9 +16,12 @@
 
 MainFrame::MainFrame( const math::uvec2& imageSize
                       , const uint32_t sampleCount
+                      , const math::vec3& cameraPosition
+                      , const math::vec2& cameraAngles
                       , const float fov
                       , const float focalLength
                       , const float aperture
+                      , const math::vec2& anglesPerAxes
                       , wxWindow* parent
                       , std::wstring title
                       , const wxPoint& pos
@@ -30,9 +33,10 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mControlPanel( new wxPanel( mMainSplitter ) )
   , mLogTextBox( new wxTextCtrl( mLeftSplitter, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY ) )
   , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mLeftSplitter ) )
-  , mRayTracer( std::make_unique<rt::RayTracer>( imageSize, fov, focalLength, aperture ) ) // set some default camera parameters here
+  , mRayTracer( std::make_unique<rt::RayTracer>( imageSize, cameraPosition, cameraAngles, fov, focalLength, aperture ) )
   , mCameraModeActive( false )
   , mPreviousMouseScreenPosition( 0.0f, 0.0f )
+  , mAnglePerAxes( anglesPerAxes )
 {
   // attach this object to the logger. Any log message sent to the log will propagated to the OnLogMessage callback
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
@@ -240,8 +244,6 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
 {
   if ( mCameraModeActive )
   {
-    const math::vec2 screenPos( event.GetX(), event.GetY() );
-    
     // calculate angle along x and y axes 
     // 
     // using the two screen space vectors to calculate the angle between them is not working as
@@ -256,15 +258,28 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
     
     // user defined and precomputed values
     const math::vec2 clientSize( static_cast<float>( GetClientSize().x, static_cast<float>( GetClientSize().y ) ) );
-    const math::vec2 anglePerAxes( 180.0f, 180.0f );
-    const math::vec2 anglePerPixel( anglePerAxes / clientSize );
+    const math::vec2 anglePerPixel( mAnglePerAxes / clientSize ); // [degrees]
+
+    // if SHIFT key is pressed rotating around Y axis only
+    // if CONTROL key is pressed rotating around X axis only
+    const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
+                                , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
 
     // calculations for every event
-    const math::vec2 delta = mPreviousMouseScreenPosition - screenPos;
-    const math::vec2 angle( anglePerPixel * delta * math::vec2( 1.0, -1.0 ) );// TODO mouse settings -> invert Y
-    logger::Logger::Instance() << "MainFrame::OnMouseMove delta: " << delta << ", angle: " << angle << "\n"; 
+    math::vec2 delta = mPreviousMouseScreenPosition - screenPos;
 
-    // apply on the raytracer camera
+    // movement along the view's X axis makes the camera rotate around it's Y axis
+    // likewise movement along the view's Y axis makes it rotate around it's X axis
+    // swaping the delta values here makes the rest of the computation simpler: .x -> rotates around X, .y around Y.
+    std::swap( delta.x, delta.y );
+
+    // TODO mouse settings -> invert rotation around X axis (mouse up-down)
+    delta *= math::vec2( -1.0, 1.0 );
+
+    // current angle based on the delta and the angle resoulution
+    const math::vec2 angle( anglePerPixel * delta );
+
+    // rotate the camera
     mRayTracer->RotateCamera( glm::radians( angle ) );
 
     // request a new render from the tracer with the current parameters

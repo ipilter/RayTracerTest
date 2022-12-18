@@ -12,15 +12,14 @@ namespace rt
 {
 
 RayTracerImpl::RayTracerImpl( const math::uvec2& pixelBufferSize
+                              , const math::vec3& cameraPosition
+                              , const math::vec2& cameraAngles
                               , const float fov
                               , const float focalLength
                               , const float aperture )
   : mPixelBufferSize( pixelBufferSize )
   , mRandomStates( nullptr )
-  , mCamera( new rt::ThinLensCamera( math::vec3( 0.0f, 0.0f, 0.0f )
-                                     , math::vec3( 1.0f, 1.0f, 1.0f )
-                                     , math::vec3( 0.0f, 1.0f, 0.0f )
-                                     , fov, focalLength, aperture ) )
+  , mCamera( new rt::ThinLensCamera( cameraPosition, cameraAngles, fov, focalLength, aperture ) )
 {
   logger::Logger::Instance() << "Raytracer created. Pixel buffer size: " << pixelBufferSize << "\n";
   random::RunInitRandomKernel( pixelBufferSize, mRandomStates );
