@@ -4,8 +4,6 @@
 #include <device_launch_parameters.h>
 #include <curand.h>
 
-#include "Common\Logger.h"
-
 namespace random
 {
 

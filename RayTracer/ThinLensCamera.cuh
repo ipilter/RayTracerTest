@@ -2,8 +2,7 @@
 
 #include "Common\Sptr.h"
 #include "Common\Math.h"
-#include "Common\Logger.h"
-#include <glm/gtx/quaternion.hpp>
+
 #include "Ray.cuh"
 #include "DeviceUtils.cuh"
 #include "Random.cuh"
