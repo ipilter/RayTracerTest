@@ -158,8 +158,11 @@ void MainFrame::RequestRender()
   {
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
 
-    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
+    {
+      GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+      mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
+    }
+
     mGLCanvas->Update();
   }
   catch( const std::exception& e )
@@ -216,11 +219,13 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
     const size_t pixelCount( mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y ) ;
     std::vector<rt::color_t> hostMem( pixelCount, 0 );
 
-    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
-    if ( err != cudaSuccess )
     {
-      throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
+      GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+      cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
+      if ( err != cudaSuccess )
+      {
+        throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
+      }
     }
 
     rt::Bitmap bmp( mGLCanvas->ImageSize(), hostMem );

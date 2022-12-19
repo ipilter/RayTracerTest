@@ -13,31 +13,24 @@
 GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
   : mGLCanvas( glCanvas )
 {
-  mGLCanvas.MapCudaResource( mGLCanvas.GetFrontPbo() );
+  mGLCanvas.MapCudaResource( mGLCanvas.GetPbo() );
 }
 
 rt::color_t* GLCanvas::CudaResourceGuard::GetDevicePtr()
 {
-  return mGLCanvas.GetMappedCudaPointer( mGLCanvas.GetFrontPbo() );
+  return mGLCanvas.GetMappedCudaPointer( mGLCanvas.GetPbo() );
 }
 
 GLCanvas::CudaResourceGuard::~CudaResourceGuard()
 {
-  mGLCanvas.UnMapCudaResource( mGLCanvas.GetFrontPbo() );
+  mGLCanvas.UnMapCudaResource( mGLCanvas.GetPbo() );
 }
 
 // OpenGL render surface with CUDA connection
 GLCanvas::GLCanvas( const math::uvec2& imageSize
                     , MainFrame* mainFrame
-                    , wxWindow* parent
-                    , wxWindowID id
-                    , const int* attribList
-                    , const wxPoint& pos
-                    , const wxSize& size
-                    , long style
-                    , const wxString& name
-                    , const wxPalette& palette )
-  : wxGLCanvas( parent, id, attribList, pos, size, style, name, palette )
+                    , wxWindow* parent )
+  : wxGLCanvas( parent )
   , mMainFrame( mainFrame )
   , mImageSize( imageSize )
   , mQuadSize( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f )
@@ -107,19 +100,13 @@ void GLCanvas::Update()
 {
   try
   {
-    Timer t; // heavy stuff is async here !!
-    t.start();
+    GetPbo()->Bind();
+      mTextures.back()->Bind();
+      mTextures.back()->UpdateFromPBO();
+      mTextures.back()->Unbind();
+    GetPbo()->Unbind();
 
-    mPBOs.back()->Bind();
-    mTextures.back()->Bind();
-    mTextures.back()->UpdateFromPBO();
-    mTextures.back()->Unbind();
-    mPBOs.back()->Unbind();
-
-    Refresh(); // async
-
-    t.stop();
-    //logger::Logger::Instance() << "Update: " << t.ms() << " ms\n";
+    Refresh();
   }
   catch ( const std::exception& e )
   {
@@ -226,26 +213,30 @@ void GLCanvas::CreateTextures()
   const size_t byteCount( pixelCount * sizeof( uint32_t ) );
 
   // create PBO
-  // TODO: multiple for float/triple buffering
+  // We are using a single pbo here as this will be our render target
+  // The rendered texture will be updated from this buffer when a render phase is done
+  // TODO: double buffering was tired but no significant help. Postponed it for later..
   mPBOs.push_back( std::make_unique<gl::PBO>() );
-  mPBOs.back()->Bind();
-  mPBOs.back()->Allocate( byteCount );
-  RegisterCudaResource( mPBOs.back() );
+  GetPbo()->Bind();
+    // allocate PBO memory
+    GetPbo()->Allocate( byteCount );
+    
+    // register as cuda interop resource
+    RegisterCudaResource( GetPbo() );
+    
+    // init PBO data
+    {
+      rt::color_t* devicePixelBufferPtr( GetPbo()->MapPboBuffer() );
+      std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::Color( 10, 10, 10 ) );
+      GetPbo()->UnMapPboBuffer();
+    }
 
-  // init PBO data
-  {
-    rt::color_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
-    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::Color( 10, 10, 10 ) );
-    mPBOs.back()->UnMapPboBuffer();
-  }
+    // create texture from PBO pixels
+    mTextures.back()->Bind();
+      mTextures.back()->CreateFromPBO();
+    mTextures.back()->Unbind();
+  GetPbo()->Unbind();
 
-  // create texture from PBO pixels
-  mTextures.back()->Bind();
-  mTextures.back()->CreateFromPBO();
-  mTextures.back()->Unbind();
-
-  // unbind PBO
-  mPBOs.back()->Unbind();
   logger::Logger::Instance() << "Texture with dimensions " << mTextures.back()->Size() << " created\n";
 }
 
@@ -342,18 +333,18 @@ rt::color_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
 
 rt::color_t* GLCanvas::GetRenderTarget()
 {
-  MapCudaResource( mPBOs.front() );
-  return GetMappedCudaPointer( mPBOs.front() );
+  MapCudaResource( GetPbo() );
+  return GetMappedCudaPointer( GetPbo() );
 }
 
 void GLCanvas::ReleaseRenderTarget()
 {
-  UnMapCudaResource( mPBOs.front() );
+  UnMapCudaResource( GetPbo() );
 }
 
-gl::PBO::uptr& GLCanvas::GetFrontPbo()
+gl::PBO::uptr& GLCanvas::GetPbo()
 {
-  return mPBOs.front();
+  return GetPbo();
 }
 
 void GLCanvas::OnPaint( wxPaintEvent& /*event*/ )

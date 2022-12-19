@@ -36,14 +36,7 @@ public:
 public:
   GLCanvas( const math::uvec2& imageSize
             , MainFrame* mainFrame
-            , wxWindow* parent
-            , wxWindowID id = wxID_ANY
-            , const int* attribList = 0
-            , const wxPoint& pos = wxDefaultPosition
-            , const wxSize& size = wxDefaultSize
-            , long style = 0L
-            , const wxString& name = L"GLCanvas"
-            , const wxPalette& palette = wxNullPalette );
+            , wxWindow* parent );
   ~GLCanvas();
 
   void Resize( const math::uvec2& imageSize );
@@ -70,7 +63,7 @@ private:
 
   // Device memory access Create a CudaResourceGuard before calling GetFrontPbo().
   // Release of cuda resources is automatic
-  gl::PBO::uptr& GetFrontPbo();
+  gl::PBO::uptr& GetPbo();
   rt::color_t* GetRenderTarget();
   void ReleaseRenderTarget();
 
