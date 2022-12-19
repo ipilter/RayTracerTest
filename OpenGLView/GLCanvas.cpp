@@ -344,7 +344,7 @@ void GLCanvas::ReleaseRenderTarget()
 
 gl::PBO::uptr& GLCanvas::GetPbo()
 {
-  return GetPbo();
+  return mPBOs.front();
 }
 
 void GLCanvas::OnPaint( wxPaintEvent& /*event*/ )
