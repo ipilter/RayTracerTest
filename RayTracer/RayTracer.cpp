@@ -45,4 +45,9 @@ void RayTracer::RotateCamera( const math::vec2& angles )
   mImpl->RotateCamera( angles );
 }
 
+void RayTracer::SetDoneCallback( CallBackFunction callback )
+{
+  mImpl->SetDoneCallback( callback );
+}
+
 }

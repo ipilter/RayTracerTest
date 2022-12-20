@@ -47,7 +47,7 @@ private:
 
   std::ofstream logStream;
   
-  MessageCallBack mMessageCallback;
+  MessageCallBack mMessageCallback = nullptr;
 
   Logger( const Logger& rhs ) = delete;
   Logger( Logger&& rhs ) noexcept = delete;

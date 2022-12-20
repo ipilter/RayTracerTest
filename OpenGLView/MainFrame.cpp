@@ -145,6 +145,9 @@ void MainFrame::InitializeUIElements()
     mParameterControls[3]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[4]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
+
+    // Ray tracer callback
+    mRayTracer->SetDoneCallback( std::bind( &MainFrame::OnRenderDone, this ) );
   }
   catch( const std::exception& e )
   {
@@ -158,12 +161,8 @@ void MainFrame::RequestRender()
   {
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
 
-    {
-      GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-      mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
-    }
-
-    mGLCanvas->Update();
+    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
+    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
   }
   catch( const std::exception& e )
   {
@@ -317,4 +316,9 @@ void MainFrame::OnShow( wxShowEvent& event )
   {
     RequestRender();
   }
+}
+
+void MainFrame::OnRenderDone()
+{
+  mGLCanvas->RequestRender();
 }

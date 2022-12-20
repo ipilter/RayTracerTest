@@ -40,9 +40,9 @@ public:
   ~GLCanvas();
 
   void Resize( const math::uvec2& imageSize );
-
-  void Update();
   const math::uvec2& ImageSize() const;
+
+  void RequestRender();
 
 private:
   void Initialize();

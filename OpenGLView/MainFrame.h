@@ -38,6 +38,7 @@ private:
   void OnMouseLeftUp( wxMouseEvent& event );
   void OnMouseLeave( wxMouseEvent& event );
   void OnShow( wxShowEvent& event );
+  void OnRenderDone();
 
   wxSplitterWindow* mMainSplitter;
   wxSplitterWindow* mLeftSplitter;

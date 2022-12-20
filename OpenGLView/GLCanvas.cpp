@@ -96,7 +96,12 @@ void GLCanvas::Resize( const math::uvec2& imageSize )
   logger::Logger::Instance() << "Resize: " << t.ms() << " ms\n";
 }
 
-void GLCanvas::Update()
+const math::uvec2& GLCanvas::ImageSize() const
+{
+  return mImageSize;
+}
+
+void GLCanvas::RequestRender()
 {
   try
   {
@@ -116,11 +121,6 @@ void GLCanvas::Update()
   {
     logger::Logger::Instance() << "Unknown error during GLCanvas::Update\n";
   }
-}
-
-const math::uvec2& GLCanvas::ImageSize() const
-{
-  return mImageSize;
 }
 
 void GLCanvas::Initialize()

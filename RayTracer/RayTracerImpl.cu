@@ -69,6 +69,11 @@ void RayTracerImpl::RotateCamera( const math::vec2& angles )
   mCamera->Rotate( angles );
 }
 
+void RayTracerImpl::SetDoneCallback( CallBackFunction callback )
+{
+  mDoneCallback = callback;
+}
+
 cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
                                             , const math::uvec2& pixelBufferSize
                                             , rt::ThinLensCamera& camera
@@ -88,11 +93,14 @@ cudaError_t RayTracerImpl::RunRenderKernel( rt::color_t* pixelBufferPtr
   cudaEventRecord( start, 0 );
   RenderKernel<<<blocksPerGrid, threadsPerBlock>>> ( pixelBufferPtr, pixelBufferSize, camera, sampleCount, randomStates );
 
-  // this blocks the CPU till all the GPU commands are executed (kernel, copy, etc)
-  //cudaDeviceSynchronize();
-
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop ); // TODO: make this switchable (on/off)
+
+  //cudaDeviceSynchronize(); // this blocks the CPU till all the GPU commands are executed (kernel, copy, etc)
+  if ( mDoneCallback != nullptr )
+  {
+    mDoneCallback();
+  }
 
   float time = 0.0f;
   cudaEventElapsedTime( &time, start, stop );

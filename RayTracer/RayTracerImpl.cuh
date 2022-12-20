@@ -1,9 +1,9 @@
-#include <curand_kernel.h>
-
 #include "Common\Math.h"
 #include <cstdint>
+#include <functional>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <curand_kernel.h>
 
 #include "ThinLensCamera.cuh"
 #include "Random.cuh"
@@ -13,6 +13,9 @@ namespace rt
 
 class RayTracerImpl
 {
+public:
+  using CallBackFunction = std::function<void()>;
+
 public:
   RayTracerImpl( const math::uvec2& pixelBufferSize
                  , const math::vec3& cameraPosition
@@ -29,6 +32,8 @@ public:
                             , const float aperture );
   void RotateCamera( const math::vec2& angles );
 
+  void SetDoneCallback( CallBackFunction callback );
+
 private:
   cudaError_t RunRenderKernel( rt::color_t* pixelBufferPtr
                                , const math::uvec2& pixelBufferSize
@@ -39,6 +44,8 @@ private:
   math::uvec2 mPixelBufferSize;
   curandState_t* mRandomStates;
   std::unique_ptr<rt::ThinLensCamera> mCamera;
+
+  CallBackFunction mDoneCallback;
 };
 
 }
