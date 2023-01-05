@@ -24,14 +24,19 @@ public:
              , const float aperture );
   ~RayTracer();
 
-  void Trace( rt::color_t* pixelBufferPtr, const uint32_t sampleCount );
+  void Trace( rt::color_t* pixelBufferPtr
+              , const uint32_t iterationCount
+              , const uint32_t samplesPerIteration
+              , const uint32_t updatesOnIteration );
+  void Cancel();
   void Resize( const math::uvec2& size );
   void SetCameraParameters( const float fov
                             , const float focalLength
                             , const float aperture );
   void RotateCamera( const math::vec2& angles );
   
-  void SetDoneCallback( CallBackFunction callback );
+  void SetUpdateCallback( CallBackFunction callback );
+  void SetFinishedCallback( CallBackFunction callback );
 
 private:
   RayTracerImpl* mImpl;

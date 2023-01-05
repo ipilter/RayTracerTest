@@ -14,6 +14,9 @@
 #include "Common\Logger.h"
 #include "Common\Math.h"
 
+wxDEFINE_EVENT( wxEVT_TRACER_UPDATE, wxCommandEvent );
+wxDEFINE_EVENT( wxEVT_TRACER_FINISHED, wxCommandEvent );
+
 MainFrame::MainFrame( const math::uvec2& imageSize
                       , const uint32_t sampleCount
                       , const math::vec3& cameraPosition
@@ -62,8 +65,8 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                                                       , 0.0f, 22.0f ) ); // min == 0 = pinhole
 
   // Buttons
-  mButtons.push_back( std::make_pair( "Render", 
-                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Render" )
+  mButtons.push_back( std::make_pair( "Trace", 
+                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Trace" )
                                                       , std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) ) ) );
   mButtons.push_back( std::make_pair( "Stop", 
                                       std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" )
@@ -83,6 +86,16 @@ MainFrame::~MainFrame()
 {
   // detach this object from the logger
   logger::Logger::Instance().SetMessageCallback();
+}
+
+void MainFrame::TracerUpdateCallback()
+{
+  wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_UPDATE ) );
+}
+
+void MainFrame::TracerFinishedCallback()
+{
+  wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_FINISHED ) );
 }
 
 void MainFrame::InitializeUIElements()
@@ -138,16 +151,21 @@ void MainFrame::InitializeUIElements()
       const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
       const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
       mRayTracer->SetCameraParameters( fov, focalLength, aperture );
-      RequestRender();
+      
+      RequestTrace();
     };
 
-    mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestRender(); } );
+    mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
     mParameterControls[3]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[4]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
 
-    // Ray tracer callback
-    mRayTracer->SetDoneCallback( std::bind( &MainFrame::OnRenderDone, this ) );
+    // Ray tracer callbacks
+    mRayTracer->SetUpdateCallback( std::bind( &MainFrame::TracerUpdateCallback, this ) ); // this will be called by the rendering thread
+    Bind( wxEVT_TRACER_UPDATE, std::bind( &MainFrame::OnTracerUpdate, this ) );
+
+    mRayTracer->SetFinishedCallback( std::bind( &MainFrame::TracerFinishedCallback, this ) ); // this will be called by the rendering thread
+    Bind( wxEVT_TRACER_FINISHED, std::bind( &MainFrame::OnTracerFinished, this ) );
   }
   catch( const std::exception& e )
   {
@@ -155,14 +173,22 @@ void MainFrame::InitializeUIElements()
   }
 }
 
-void MainFrame::RequestRender()
+void MainFrame::RequestTrace()
 {
+  logger::Logger::Instance() << "MainFrame::RequestTrace\n";
   try
   {
+    const uint32_t iterationCount = 100;
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
+    const uint32_t updateOnIteration = 10;
 
-    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
+    // Keep the resource guard open while tracing ( here the trace call returns immediately )
+    mRenderDataCudaResource.reset( new GLCanvas::CudaResourceGuard( *mGLCanvas ) );
+
+    mRayTracer->Trace( mRenderDataCudaResource->GetDevicePtr()
+                       , iterationCount
+                       , sampleCount
+                       , updateOnIteration );
   }
   catch( const std::exception& e )
   {
@@ -186,7 +212,7 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
     mRayTracer->Resize( newImageSize );
 
     // Rerender frame with the new size
-    RequestRender();
+    RequestTrace();
   }
   catch( const std::exception& e )
   {
@@ -196,7 +222,7 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
 
 void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
 {
-  RequestRender();
+  RequestTrace();
 }
 
 void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
@@ -288,7 +314,7 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
     mRayTracer->RotateCamera( glm::radians( anglePerPixel * delta ) );
 
     // request a new render from the tracer with the current parameters
-    RequestRender();
+    RequestTrace();
 
     mPreviousMouseScreenPosition = screenPos;
   }
@@ -314,11 +340,29 @@ void MainFrame::OnShow( wxShowEvent& event )
 {
   if ( event.IsShown() )
   {
-    RequestRender();
+    RequestTrace();
   }
 }
 
-void MainFrame::OnRenderDone()
+void MainFrame::OnTracerUpdate()
 {
+  logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
+
+  // intermediate update (pbo -> texture -> update view)
+  // update the texture from the current state ( pbo or mapped ptr if pbo is not updated while it is mapped..)
+  // mRenderDataCudaResource->GetDevicePtr();
+
+  // update texture from pbo and request a dedraw event
   mGLCanvas->RequestRender();
+}
+
+void MainFrame::OnTracerFinished()
+{
+  logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
+
+  // close mapped cuda ptr (CudaResourceGuard) and do a final update (pbo -> texture)
+  mRenderDataCudaResource.reset();
+
+  // update texture from pbo and request a dedraw event
+  //mGLCanvas->RequestRender();
 }

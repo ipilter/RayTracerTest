@@ -115,6 +115,7 @@ attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
     <ClInclude Include="Random.cuh" />
     <ClInclude Include="RayTracerImpl.cuh" />
     <ClInclude Include="RayTracer.h" />
+    <ClInclude Include="Render.cuh" />
     <ClInclude Include="RenderData.cuh" />
     <ClInclude Include="RenderKernel.cuh" />
     <ClInclude Include="ThinLensCamera.cuh" />

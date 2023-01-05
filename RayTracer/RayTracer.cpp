@@ -23,9 +23,20 @@ RayTracer::~RayTracer()
   delete mImpl;
 }
 
-void RayTracer::Trace( rt::color_t* pixelBufferPtr, const uint32_t sampleCount )
+void RayTracer::Trace( rt::color_t* pixelBufferPtr
+                       , const uint32_t iterationCount
+                       , const uint32_t samplesPerIteration
+                       , const uint32_t updatesOnIteration )
 {
-  mImpl->Trace( pixelBufferPtr, sampleCount );
+  mImpl->Trace( pixelBufferPtr
+                , iterationCount
+                , samplesPerIteration
+                , updatesOnIteration );
+}
+
+void RayTracer::Cancel()
+{
+  mImpl->Cancel();
 }
 
 void RayTracer::Resize( const math::uvec2& size )
@@ -45,9 +56,15 @@ void RayTracer::RotateCamera( const math::vec2& angles )
   mImpl->RotateCamera( angles );
 }
 
-void RayTracer::SetDoneCallback( CallBackFunction callback )
+void RayTracer::SetUpdateCallback( CallBackFunction callback )
 {
-  mImpl->SetDoneCallback( callback );
+  mImpl->SetUpdateCallback( callback );
 }
+
+void RayTracer::SetFinishedCallback( CallBackFunction callback )
+{
+  mImpl->SetFinishedCallback( callback );
+}
+
 
 }

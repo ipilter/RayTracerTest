@@ -45,6 +45,7 @@ bool App::OnInit()
                                             , wxDefaultPosition
                                             , wxSize{ static_cast<int>( display.GetGeometry().width * 0.75f )
                                                       , static_cast<int>( display.GetGeometry().height * 0.75f ) } );
+  SetTopWindow( mMainFrame.get() );
   return mMainFrame->Show( true );
 }
 

@@ -24,9 +24,12 @@ public:
 
   virtual ~MainFrame();
 
+  void TracerUpdateCallback();
+  void TracerFinishedCallback();
+
 private:
   void InitializeUIElements();
-  void RequestRender();
+  void RequestTrace();
 
   void OnResizeButton( wxCommandEvent& event );
   void OnRenderButton( wxCommandEvent& event );
@@ -38,7 +41,8 @@ private:
   void OnMouseLeftUp( wxMouseEvent& event );
   void OnMouseLeave( wxMouseEvent& event );
   void OnShow( wxShowEvent& event );
-  void OnRenderDone();
+  void OnTracerUpdate();
+  void OnTracerFinished();
 
   wxSplitterWindow* mMainSplitter;
   wxSplitterWindow* mLeftSplitter;
@@ -52,6 +56,7 @@ private:
   std::vector<std::pair<std::string, std::pair<wxButton*, EventCallBack>>> mButtons;
 
   GLCanvas::uptr mGLCanvas;
+  std::unique_ptr<GLCanvas::CudaResourceGuard> mRenderDataCudaResource;
   rt::RayTracer::uptr mRayTracer;
 
   bool mCameraModeActive;

@@ -53,6 +53,9 @@
     <ClInclude Include="RayTracer.h">
       <Filter>Header Filkes\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Render.cuh">
+      <Filter>Header Filkes\Implementation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RayTracer.cpp">
