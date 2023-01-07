@@ -32,12 +32,12 @@ __global__ void ConverterKernel( const math::uvec2 renderBufferSize
 }
 
 // Note: arguments MUST be by value or by pointer. Pointer MUST be in device mem space
-__global__ void RenderKernel( float* renderBuffer
-                              , const math::uvec2 bufferSize
-                              , const uint32_t channelCount
-                              , rt::ThinLensCamera camera
-                              , const uint32_t sampleCount
-                              , curandState_t* randomStates )
+__global__ void TraceKernel( float* renderBuffer
+                             , const math::uvec2 bufferSize
+                             , const uint32_t channelCount
+                             , rt::ThinLensCamera camera
+                             , const uint32_t sampleCount
+                             , curandState_t* randomStates )
 {
   using namespace math;
 

@@ -44,7 +44,7 @@
     <ClInclude Include="RenderData.cuh">
       <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
-    <ClInclude Include="RenderKernel.cuh">
+    <ClInclude Include="Kernels.cuh">
       <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
     <ClInclude Include="ThinLensCamera.cuh">
@@ -53,7 +53,7 @@
     <ClInclude Include="RayTracer.h">
       <Filter>Header Filkes\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Render.cuh">
+    <ClInclude Include="RenderBuffer.cuh">
       <Filter>Header Filkes\Implementation</Filter>
     </ClInclude>
   </ItemGroup>

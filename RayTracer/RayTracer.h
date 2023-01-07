@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <driver_types.h>
 
 #include "Common\Math.h"
 #include "Common\Sptr.h"
@@ -24,7 +25,7 @@ public:
              , const float aperture );
   ~RayTracer();
 
-  void Trace( rt::color_t* pixelBufferPtr
+  void Trace( cudaGraphicsResource_t pboCudaResource
               , const uint32_t iterationCount
               , const uint32_t samplesPerIteration
               , const uint32_t updatesOnIteration );

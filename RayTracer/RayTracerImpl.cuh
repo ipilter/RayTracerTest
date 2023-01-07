@@ -27,7 +27,7 @@ public:
                  , const float aperture );
   ~RayTracerImpl();
 
-  void Trace( rt::color_t* pixelBufferPtr
+  void Trace( cudaGraphicsResource_t pboCudaResource
               , const uint32_t iterationCount
               , const uint32_t samplesPerIteration
               , const uint32_t updatesOnIteration );
@@ -43,19 +43,19 @@ public:
   void SetFinishedCallback( CallBackFunction callback );
 
 private:
-  __host__ cudaError_t RunRenderKernel( float* renderBuffer
-                                        , const math::uvec2& bufferSize
-                                        , const uint32_t channelCount
-                                        , rt::ThinLensCamera& camera
-                                        , const uint32_t sampleCount
-                                        , curandState_t* randomStates );
+  __host__ cudaError_t RunTraceKernel( float* renderBuffer
+                                       , const math::uvec2& bufferSize
+                                       , const uint32_t channelCount
+                                       , rt::ThinLensCamera& camera
+                                       , const uint32_t sampleCount
+                                       , curandState_t* randomStates );
 
   __host__ cudaError_t RunConverterKernel( const math::uvec2& bufferSize
                                            , const uint32_t channelCount
                                            , float*& renderBuffer
                                            , rt::color_t* pixelBufferPtr );
 
-  __host__ void TraceFunct( rt::color_t* pixelBufferPtr
+  __host__ void TraceFunct( cudaGraphicsResource_t pboCudaResource 
                             , const uint32_t iterationCount
                             , const uint32_t samplesPerIteration
                             , const uint32_t updatesOnIteration );

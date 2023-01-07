@@ -4,8 +4,8 @@
 #include "RayTracerImpl.cuh"
 #include "Random.cuh"
 #include "DeviceUtils.cuh"
-#include "RenderKernel.cuh"
-#include "Render.cuh"
+#include "Kernels.cuh"
+#include "RenderBuffer.cuh"
 
 #include "Common\Logger.h"
 
@@ -56,23 +56,23 @@ RayTracerImpl::~RayTracerImpl()
   }
 }
 
-void RayTracerImpl::Trace( rt::color_t* pixelBufferPtr
+void RayTracerImpl::Trace( cudaGraphicsResource_t pboCudaResource
                            , const uint32_t iterationCount
                            , const uint32_t samplesPerIteration
                            , const uint32_t updatesOnIteration )
 {
   // cancel previous operation, if any
-  mCancelled = true;
   if ( mThread.joinable() )
   {
+    mCancelled = true;
     mThread.join();
+    mCancelled = false;
   }
-  mCancelled = false;
 
-  // Run rendering function async
+  // Run rendering function async. TODO use pool instead of creating a new thread
   mThread = std::thread( std::bind( &RayTracerImpl::TraceFunct
                                     , this
-                                    , pixelBufferPtr
+                                    , pboCudaResource
                                     , iterationCount
                                     , samplesPerIteration
                                     , updatesOnIteration ) );
@@ -140,12 +140,12 @@ cudaError_t RayTracerImpl::RunConverterKernel( const math::uvec2& bufferSize
   return cudaGetLastError();
 }
 
-cudaError_t RayTracerImpl::RunRenderKernel( float* renderBuffer
-                                            , const math::uvec2& bufferSize
-                                            , const uint32_t channelCount
-                                            , rt::ThinLensCamera& camera
-                                            , const uint32_t sampleCount
-                                            , curandState_t* randomStates )
+cudaError_t RayTracerImpl::RunTraceKernel( float* renderBuffer
+                                           , const math::uvec2& bufferSize
+                                           , const uint32_t channelCount
+                                           , rt::ThinLensCamera& camera
+                                           , const uint32_t sampleCount
+                                           , curandState_t* randomStates )
 {
   // TODO fast way, do better!
   const dim3 threadsPerBlock( 32, 32, 1 );
@@ -158,7 +158,7 @@ cudaError_t RayTracerImpl::RunRenderKernel( float* renderBuffer
   cudaEventCreate( &stop );
 
   cudaEventRecord( start, 0 );
-  RenderKernel<<<blocksPerGrid, threadsPerBlock>>> ( renderBuffer, bufferSize, channelCount, camera, sampleCount, randomStates );
+  TraceKernel<<<blocksPerGrid, threadsPerBlock>>> ( mRenderBuffer, bufferSize, channelCount, camera, sampleCount, randomStates );
 
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop ); // TODO: make this switchable (on/off)
@@ -171,7 +171,7 @@ cudaError_t RayTracerImpl::RunRenderKernel( float* renderBuffer
   return cudaGetLastError();
 }
 
-__host__ void RayTracerImpl::TraceFunct( rt::color_t* pixelBufferPtr
+__host__ void RayTracerImpl::TraceFunct( cudaGraphicsResource_t pboCudaResource
                                          , const uint32_t iterationCount
                                          , const uint32_t samplesPerIteration
                                          , const uint32_t updatesOnIteration )
@@ -183,20 +183,44 @@ __host__ void RayTracerImpl::TraceFunct( rt::color_t* pixelBufferPtr
     render::ClearRenderBuffer( mPixelBufferSize, channelCount, mRenderBuffer );
 
     cudaError_t err = cudaSuccess;
-    for ( auto i = 0u; i < iterationCount; ++i ) // TODO && !mIsCancelled
+    for ( uint32_t i( 0 ); !mCancelled && i < iterationCount; ++i )
     {
-      RunRenderKernel( mRenderBuffer, mPixelBufferSize, channelCount, *mCamera, samplesPerIteration, mRandomStates );
+      err = RunTraceKernel( mRenderBuffer, mPixelBufferSize, channelCount, *mCamera, samplesPerIteration, mRandomStates );
       if ( err != cudaSuccess )
       {
-        throw std::runtime_error( std::string( "RunRenderKernel failed: " ) + cudaGetErrorString( err ) );
+        throw std::runtime_error( std::string( "RunTraceKernel failed: " ) + cudaGetErrorString( err ) );
       }
 
-      if ( mUpdateCallback != nullptr && updatesOnIteration > 0 && i % updatesOnIteration == 0 )
+      // check if update is needed
+      if ( mUpdateCallback != nullptr && i > 0 && updatesOnIteration > 0 && i % updatesOnIteration == 0 )
       {
+        err = cudaGraphicsMapResources( 1, &pboCudaResource );
+        if ( err != cudaSuccess )
+        {
+          throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
+        }
+
+        rt::color_t* pixelBufferPtr = nullptr;
+        size_t size = 0;
+        err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
+                                                                , &size
+                                                                , pboCudaResource );
+        if ( err != cudaSuccess )
+        {
+          throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
+        }
+
+
         err = RunConverterKernel( mPixelBufferSize, channelCount, mRenderBuffer, pixelBufferPtr );
         if ( err != cudaSuccess )
         {
           throw std::runtime_error( std::string( "RunConverterKernel failed: " ) + cudaGetErrorString( err ) );
+        }
+
+        err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
+        if ( err != cudaSuccess )
+        {
+          throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
         }
 
         // notify view to update the view's texture
@@ -204,11 +228,39 @@ __host__ void RayTracerImpl::TraceFunct( rt::color_t* pixelBufferPtr
       }
     }
 
-    // convert render buffer to image and store it in PBO
+    // early reaturn if cancel was called on us
+    if ( mCancelled )
+    {
+      return;
+    }
+
+    err = cudaGraphicsMapResources( 1, &pboCudaResource );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
+    }
+
+    rt::color_t* pixelBufferPtr = nullptr;
+    size_t size = 0;
+    err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
+                                                , &size
+                                                , pboCudaResource );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
+    }
+
+
     err = RunConverterKernel( mPixelBufferSize, channelCount, mRenderBuffer, pixelBufferPtr );
     if ( err != cudaSuccess )
     {
       throw std::runtime_error( std::string( "RunConverterKernel failed: " ) + cudaGetErrorString( err ) );
+    }
+
+    err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
+    if ( err != cudaSuccess )
+    {
+      throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
     }
 
     // notify view that we are done
@@ -217,7 +269,11 @@ __host__ void RayTracerImpl::TraceFunct( rt::color_t* pixelBufferPtr
       mFinishedCallback();
     }
   }
-  catch ( const std::exception& e )
+  catch ( const std::exception& /*e*/ )
+  {
+    // TODO: error handling
+  }
+  catch ( ... )
   {
     // TODO: error handling
   }

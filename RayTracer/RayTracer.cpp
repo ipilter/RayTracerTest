@@ -23,12 +23,12 @@ RayTracer::~RayTracer()
   delete mImpl;
 }
 
-void RayTracer::Trace( rt::color_t* pixelBufferPtr
+void RayTracer::Trace( cudaGraphicsResource_t pboCudaResource
                        , const uint32_t iterationCount
                        , const uint32_t samplesPerIteration
                        , const uint32_t updatesOnIteration )
 {
-  mImpl->Trace( pixelBufferPtr
+  mImpl->Trace( pboCudaResource
                 , iterationCount
                 , samplesPerIteration
                 , updatesOnIteration );

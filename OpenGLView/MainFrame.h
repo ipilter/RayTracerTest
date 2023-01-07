@@ -56,7 +56,6 @@ private:
   std::vector<std::pair<std::string, std::pair<wxButton*, EventCallBack>>> mButtons;
 
   GLCanvas::uptr mGLCanvas;
-  std::unique_ptr<GLCanvas::CudaResourceGuard> mRenderDataCudaResource;
   rt::RayTracer::uptr mRayTracer;
 
   bool mCameraModeActive;

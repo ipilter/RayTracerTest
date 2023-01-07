@@ -182,10 +182,8 @@ void MainFrame::RequestTrace()
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
     const uint32_t updateOnIteration = 10;
 
-    // Keep the resource guard open while tracing ( here the trace call returns immediately )
-    mRenderDataCudaResource.reset( new GLCanvas::CudaResourceGuard( *mGLCanvas ) );
-
-    mRayTracer->Trace( mRenderDataCudaResource->GetDevicePtr()
+    cudaGraphicsResource_t res = mGLCanvas->GetPboCudeResource();
+    mRayTracer->Trace( res
                        , iterationCount
                        , sampleCount
                        , updateOnIteration );
@@ -349,20 +347,14 @@ void MainFrame::OnTracerUpdate()
   logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
 
   // intermediate update (pbo -> texture -> update view)
-  // update the texture from the current state ( pbo or mapped ptr if pbo is not updated while it is mapped..)
-  // mRenderDataCudaResource->GetDevicePtr();
-
   // update texture from pbo and request a dedraw event
-  mGLCanvas->RequestRender();
+  mGLCanvas->UpdateTextureAndRefresh();
 }
 
 void MainFrame::OnTracerFinished()
 {
   logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
 
-  // close mapped cuda ptr (CudaResourceGuard) and do a final update (pbo -> texture)
-  mRenderDataCudaResource.reset();
-
   // update texture from pbo and request a dedraw event
-  //mGLCanvas->RequestRender();
+  mGLCanvas->UpdateTextureAndRefresh();
 }
