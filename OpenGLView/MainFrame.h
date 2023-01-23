@@ -5,6 +5,7 @@
 #include "GLCanvas.h"
 #include "NamedTextControl.h"
 #include "RayTracer\RayTracer.h"
+#include "RayTracer\RaytracerCallback.h"
 
 class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 {
@@ -24,8 +25,8 @@ public:
 
   virtual ~MainFrame();
 
-  void TracerUpdateCallback();
-  void TracerFinishedCallback();
+  void TracerUpdateCallback( rt::ColorConstPtr deviceImageBuffer, const std::size_t size );
+  void TracerFinishedCallback( rt::ColorConstPtr deviceImageBuffer, const std::size_t size );
 
 private:
   void InitializeUIElements();

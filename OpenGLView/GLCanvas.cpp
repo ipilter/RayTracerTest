@@ -16,7 +16,7 @@ GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
   mGLCanvas.MapCudaResource( mGLCanvas.mPBOs.back() );
 }
 
-rt::color_t* GLCanvas::CudaResourceGuard::GetDevicePtr()
+rt::Color* GLCanvas::CudaResourceGuard::GetDevicePtr()
 {
   return mGLCanvas.GetMappedCudaPointer( mGLCanvas.mPBOs.back() );
 }
@@ -236,8 +236,8 @@ void GLCanvas::CreateTextures()
   
   // init PBO data
   {
-    rt::color_t* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
-    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::Color( 10, 10, 10 ) );
+    rt::Color* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
+    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::GetColor( 10, 10, 10 ) );
     mPBOs.back()->UnMapPboBuffer();
   }
 
@@ -327,9 +327,9 @@ void GLCanvas::UnMapCudaResource( const gl::PBO::uptr& pbo )
   }
 }
 
-rt::color_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
+rt::Color* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
 {
-  rt::color_t* ptr = nullptr;
+  rt::Color* ptr = nullptr;
   size_t mapped_size = 0;
 
   // TODO searching every time

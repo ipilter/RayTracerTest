@@ -21,7 +21,7 @@ public:
 
   const uint32_t& Id() const;
 
-  rt::color_t* MapPboBuffer();
+  rt::Color* MapPboBuffer();
   void UnMapPboBuffer();
 
 private:

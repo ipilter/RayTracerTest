@@ -10,14 +10,14 @@ namespace utils
 {
 
 // BGRA -> r|g|b|a
-inline __device__ rt::channel_t GetComponent( const rt::color_t& color, const uint32_t& idx )
+inline __device__ rt::Channel GetComponent( const rt::Color& color, const uint32_t& idx )
 {
   static const uint32_t params[][2]{ {0x00FF0000, 16}, {0x0000FF00, 8}, {0x000000FF, 0}, {0xFF000000, 24} };
-  return static_cast<rt::channel_t>( ( color & params[idx][0] ) >> params[idx][1] );
+  return static_cast<rt::Channel>( ( color & params[idx][0] ) >> params[idx][1] );
 }
 
 // r|g|b|a -> BGRA
-inline __device__ rt::color_t Color( const rt::channel_t r = 0, const rt::channel_t g = 0, const rt::channel_t b = 0, const rt::channel_t a = 255 )
+inline __device__ rt::Color GetColor( const rt::Channel r = 0, const rt::Channel g = 0, const rt::Channel b = 0, const rt::Channel a = 255 )
 {
   return ( b << 0 ) | ( g << 8 ) | ( r << 16 ) | ( a << 24 );
 }

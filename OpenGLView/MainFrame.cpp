@@ -88,13 +88,24 @@ MainFrame::~MainFrame()
   logger::Logger::Instance().SetMessageCallback();
 }
 
-void MainFrame::TracerUpdateCallback()
+void MainFrame::TracerUpdateCallback( rt::ColorConstPtr /*deviceImageBuffer*/, const std::size_t /*size*/ )
 {
+  // called on Render thread
+
+  // gpu side data is here:
+  //deviceImageBuffer
+  //size
+
   wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_UPDATE ) );
 }
 
-void MainFrame::TracerFinishedCallback()
+void MainFrame::TracerFinishedCallback( rt::ColorConstPtr /*deviceImageBuffer*/, const std::size_t /*size*/ )
 {
+  // called on Render thread
+
+  // gpu side data is here:
+  //deviceImageBuffer
+  //size
   wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_FINISHED ) );
 }
 
@@ -155,16 +166,18 @@ void MainFrame::InitializeUIElements()
       RequestTrace();
     };
 
+    // User interaction callbacks
     mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
     mParameterControls[3]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[4]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
 
-    // Ray tracer callbacks
-    mRayTracer->SetUpdateCallback( std::bind( &MainFrame::TracerUpdateCallback, this ) ); // this will be called by the rendering thread
+    // Ray tracer callbacks 
+    // these will be called by the rendering thread
+    mRayTracer->SetUpdateCallback( std::bind( &MainFrame::TracerUpdateCallback, this, std::placeholders::_1, std::placeholders::_2 ) );
+    mRayTracer->SetFinishedCallback( std::bind( &MainFrame::TracerFinishedCallback, this, std::placeholders::_1, std::placeholders::_2 ) );
+    // these will be called by the UI thread
     Bind( wxEVT_TRACER_UPDATE, std::bind( &MainFrame::OnTracerUpdate, this ) );
-
-    mRayTracer->SetFinishedCallback( std::bind( &MainFrame::TracerFinishedCallback, this ) ); // this will be called by the rendering thread
     Bind( wxEVT_TRACER_FINISHED, std::bind( &MainFrame::OnTracerFinished, this ) );
   }
   catch( const std::exception& e )
@@ -194,17 +207,71 @@ void MainFrame::RequestTrace()
 
 void MainFrame::OnTracerUpdate()
 {
-  logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
+  // called on UI thread
 
-  // TODO update pbo from the tracer's image buffer
+  //logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
+
+  // TODO do as fast as possible
+  //err = cudaGraphicsMapResources( 1, &pboCudaResource );
+  //if ( err != cudaSuccess )
+  //{
+  //  throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
+  //}
+  //
+  //rt::Color* pixelBufferPtr = nullptr;
+  //size_t size = 0;
+  //err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
+  //                                                        , &size
+  //                                                        , pboCudaResource );
+  //if ( err != cudaSuccess )
+  //{
+  //  throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
+  //}
+  //
+  //
+  //err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
+  //if ( err != cudaSuccess )
+  //{
+  //  throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
+  //}
+  //
+  //cudaMemcpy( &hostImageBuffer.front(), deviceImageBuffer, size, cudaMemcpyDeviceToDevice);
+
+
   mGLCanvas->UpdateTextureAndRefresh();
 }
 
 void MainFrame::OnTracerFinished()
 {
-  logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
+  // called on UI thread
+  //logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
 
-  // TODO update pbo from the tracer's image buffer
+  //err = cudaGraphicsMapResources( 1, &pboCudaResource );
+  //if ( err != cudaSuccess )
+  //{
+  //  throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
+  //}
+  //
+  //rt::Color* pixelBufferPtr = nullptr;
+  //size_t size = 0;
+  //err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
+  //                                            , &size
+  //                                            , pboCudaResource );
+  //if ( err != cudaSuccess )
+  //{
+  //  throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
+  //}
+  //
+  //
+  //
+  //err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
+  //if ( err != cudaSuccess )
+  //{
+  //  throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
+  //}
+
+  //cudaMemcpy( &hostImageBuffer.front(), deviceImageBuffer, size, cudaMemcpyDeviceToDevice);
+
   mGLCanvas->UpdateTextureAndRefresh();
 }
 
@@ -238,7 +305,9 @@ void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
 }
 
 void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
-{}
+{
+  mRayTracer->Stop();
+}
 
 void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 {
@@ -254,11 +323,11 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 
     // copy pixel data from GPU to CPU then write to disc
     const size_t pixelCount( mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y ) ;
-    std::vector<rt::color_t> hostMem( pixelCount, 0 );
+    std::vector<rt::Color> hostMem( pixelCount, 0 );
 
     {
       GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-      cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
+      cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::Color ), cudaMemcpyDeviceToHost ) );
       if ( err != cudaSuccess )
       {
         throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );

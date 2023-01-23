@@ -14,7 +14,7 @@ namespace rt
 __global__ void ConverterKernel( const math::uvec2 bufferSize
                                      , const uint32_t channelCount
                                      , float* renderBuffer
-                                     , rt::color_t* imageBuffer )
+                                     , rt::Color* imageBuffer )
 {
   using namespace math;
 
@@ -26,7 +26,7 @@ __global__ void ConverterKernel( const math::uvec2 bufferSize
 
   const uint32_t offset( pixel.x + pixel.y * bufferSize.x );
   const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
-  imageBuffer[offset] = utils::Color( 255u * renderBuffer[offset2]
+  imageBuffer[offset] = utils::GetColor( 255u * renderBuffer[offset2]
                                       , 255u * renderBuffer[offset2 + 1]
                                       , 255u * renderBuffer[offset2 + 2] );
 }

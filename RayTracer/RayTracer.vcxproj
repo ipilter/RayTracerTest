@@ -113,6 +113,7 @@ attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Random.cuh" />
+    <ClInclude Include="RaytracerCallback.h" />
     <ClInclude Include="RayTracerImpl.cuh" />
     <ClInclude Include="RayTracer.h" />
     <ClInclude Include="RenderBuffer.cuh" />

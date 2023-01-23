@@ -27,7 +27,7 @@ public:
     CudaResourceGuard( GLCanvas& glCanvas );
     ~CudaResourceGuard();
 
-    rt::color_t* GetDevicePtr();
+    rt::Color* GetDevicePtr();
 
   private:
     GLCanvas& mGLCanvas;
@@ -61,7 +61,7 @@ private:
 
   void MapCudaResource( const gl::PBO::uptr& pbo );
   void UnMapCudaResource( const gl::PBO::uptr& pbo );
-  rt::color_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
+  rt::Color* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
 
   void OnPaint( wxPaintEvent& event );
   void OnSize( wxSizeEvent& event );

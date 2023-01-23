@@ -32,9 +32,9 @@ void RayTracer::Trace( const uint32_t iterationCount
                 , updateInterval );
 }
 
-void RayTracer::Cancel()
+void RayTracer::Stop()
 {
-  mImpl->Cancel();
+  mImpl->Stop();
 }
 
 void RayTracer::Resize( const math::uvec2& size )
@@ -54,12 +54,12 @@ void RayTracer::RotateCamera( const math::vec2& angles )
   mImpl->RotateCamera( angles );
 }
 
-void RayTracer::SetUpdateCallback( CallBackFunction callback )
+void RayTracer::SetUpdateCallback( rt::CallBackFunction callback )
 {
   mImpl->SetUpdateCallback( callback );
 }
 
-void RayTracer::SetFinishedCallback( CallBackFunction callback )
+void RayTracer::SetFinishedCallback( rt::CallBackFunction callback )
 {
   mImpl->SetFinishedCallback( callback );
 }

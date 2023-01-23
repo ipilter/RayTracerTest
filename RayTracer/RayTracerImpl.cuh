@@ -9,6 +9,7 @@
 
 #include "ThinLensCamera.cuh"
 #include "Random.cuh"
+#include "RaytracerCallback.h"
 
 namespace rt
 {
@@ -16,7 +17,7 @@ namespace rt
 class RayTracerImpl
 {
 public:
-  using CallBackFunction = std::function<void()>;
+  
 
 public:
   RayTracerImpl( const math::uvec2& imageSize
@@ -30,14 +31,14 @@ public:
   void Trace( const uint32_t iterationCount
               , const uint32_t samplesPerIteration
               , const uint32_t updateInterval );
-  void Cancel();
+  void Stop();
   void Resize( const math::uvec2& size );
   void SetCameraParameters( const float fov
                             , const float focalLength
                             , const float aperture );
   void RotateCamera( const math::vec2& angles );
-  void SetUpdateCallback( CallBackFunction callback );
-  void SetFinishedCallback( CallBackFunction callback );
+  void SetUpdateCallback( rt::CallBackFunction callback );
+  void SetFinishedCallback( rt::CallBackFunction callback );
 
 private:
   __host__ cudaError_t RunTraceKernel( float* renderBuffer
@@ -50,7 +51,7 @@ private:
   __host__ cudaError_t RunConverterKernel( const math::uvec2& bufferSize
                                            , const uint32_t channelCount
                                            , float*& renderBuffer
-                                           , rt::color_t* imageBuffer );
+                                           , rt::Color* imageBuffer );
 
   __host__ void TraceFunct( const uint32_t iterationCount
                             , const uint32_t samplesPerIteration
@@ -58,15 +59,22 @@ private:
 
   void ReleaseBuffers();
 
+  static unsigned ChannelCount()
+  {
+    return 4;
+  }
+
 private:
   math::uvec2 mBufferSize;
-  curandState_t* mRandomStates;
-  float* mRenderBuffer;
+  float* mRenderBuffer; // TODO no raw ptr
+  rt::Color* mImageBuffer; // TODO no raw ptr
+
+  curandState_t* mRandomStates; // TODO no raw ptr
   std::unique_ptr<rt::ThinLensCamera> mCamera;
 
-  std::atomic<bool> mCancelled;
-  CallBackFunction mUpdateCallback;
-  CallBackFunction mFinishedCallback;
+  std::atomic<bool> mStopped;
+  rt::CallBackFunction mUpdateCallback;
+  rt::CallBackFunction mFinishedCallback;
   std::thread mThread;
 };
 
