@@ -31,7 +31,7 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& imageSize
     random::CreateStates( mBufferSize, mRandomStates );
     render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
     render::ClearRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
-    render::CreateImageBuffer( mBufferSize, ChannelCount(), mImageBuffer );
+    render::CreateImageBuffer( mBufferSize, mImageBuffer );
 
     logger::Logger::Instance() << "Raytracer created. Image buffer size: " << mBufferSize << "\n";
   }
@@ -85,8 +85,8 @@ void RayTracerImpl::Resize( const math::uvec2& size )
 
   mBufferSize = size;
   random::CreateStates( mBufferSize, mRandomStates );
-  render::CreateRenderBuffer( mBufferSize, 4, mRenderBuffer );
-  render::CreateImageBuffer( mBufferSize, ChannelCount(), mImageBuffer );
+  render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+  render::CreateImageBuffer( mBufferSize, mImageBuffer );
 }
 
 void RayTracerImpl::SetCameraParameters( const float fov
@@ -150,8 +150,6 @@ cudaError_t RayTracerImpl::RunTraceKernel( float* renderBuffer
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop ); // TODO: make this switchable (on/off)
 
-  //cudaDeviceSynchronize(); // this blocks the CPU till all the GPU commands are executed (kernel, copy, etc)
-
   float time = 0.0f;
   cudaEventElapsedTime( &time, start, stop );
 
@@ -164,15 +162,13 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
 {
   try
   {
-    const uint32_t channelCount = 4;
-
-    render::ClearRenderBuffer( mBufferSize, channelCount, mRenderBuffer );
+    render::ClearRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
 
     cudaError_t err = cudaSuccess;
     for ( uint32_t i( 0 ); !mStopped && i < iterationCount; ++i )
     {
       // TODO: make kernel call cancellable if possible (imageine long runtimer here, cancel operation would wait for this call)
-      err = RunTraceKernel( mRenderBuffer, mBufferSize, channelCount, *mCamera, samplesPerIteration, mRandomStates );
+      err = RunTraceKernel( mRenderBuffer, mBufferSize, ChannelCount(), *mCamera, samplesPerIteration, mRandomStates );
       if ( err != cudaSuccess )
       {
         throw std::runtime_error( std::string( "RunTraceKernel failed: " ) + cudaGetErrorString( err ) );
@@ -181,14 +177,18 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
       // check if update is needed
       if ( mUpdateCallback != nullptr && i > 0 && updateInterval > 0 && i % updateInterval == 0 )
       {
-        err = RunConverterKernel( mBufferSize, channelCount, mRenderBuffer, mImageBuffer );
+        // wait for the scheduled commands to be executed
+        cudaDeviceSynchronize();
+
+        // run render -> image conversion
+        err = RunConverterKernel( mBufferSize, ChannelCount(), mRenderBuffer, mImageBuffer );
         if ( err != cudaSuccess )
         {
           throw std::runtime_error( std::string( "RunConverterKernel failed: " ) + cudaGetErrorString( err ) );
         }
 
         // notify view to update the view's texture
-        mUpdateCallback( mImageBuffer, mBufferSize.x * mBufferSize.y );
+        mUpdateCallback( mImageBuffer, mBufferSize.x * mBufferSize.y * sizeof( rt::Color ) );
       }
     }
 
@@ -199,13 +199,11 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
       return;
     }
 
-    // instead of mapping the opengl ptr from the render thread, we prepare a temp image data from the current render data:
-    // - call RunConverterKernel which does the render -> image data conversion
-    // - call finish callback and provide the device ptr where the image data is stored
-    // - UI thread can copy the this image data to the mapped opengl pixel buffer and do the texture update
+    // wait for the scheduled commands to be executed
+    cudaDeviceSynchronize();
 
     // run render -> image conversion
-    err = RunConverterKernel( mBufferSize, channelCount, mRenderBuffer, mImageBuffer );
+    err = RunConverterKernel( mBufferSize, ChannelCount(), mRenderBuffer, mImageBuffer );
     if ( err != cudaSuccess )
     {
       throw std::runtime_error( std::string( "RunConverterKernel failed: " ) + cudaGetErrorString( err ) );
@@ -214,7 +212,7 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
     // notify view that we are done
     if ( mFinishedCallback != nullptr )
     {
-      mFinishedCallback( mImageBuffer, mBufferSize.x * mBufferSize.y );
+      mFinishedCallback( mImageBuffer, mBufferSize.x * mBufferSize.y * sizeof( rt::Color ) );
     }
   }
   catch ( const std::exception& /*e*/ )

@@ -42,9 +42,10 @@ public:
   void Resize( const math::uvec2& imageSize );
   const math::uvec2& ImageSize() const;
 
+  void UpdatePBO( rt::ColorPtr deviceImageBuffer, std::size_t deviceImageBufferSize );
   void UpdateTextureAndRefresh();
 
-  cudaGraphicsResource_t GetPboCudeResource() const;
+  cudaGraphicsResource_t GetPboCudaResource() const;
 
 private:
   void Initialize();

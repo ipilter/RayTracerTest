@@ -19,6 +19,8 @@ wxDEFINE_EVENT( wxEVT_TRACER_FINISHED, wxCommandEvent );
 
 MainFrame::MainFrame( const math::uvec2& imageSize
                       , const uint32_t sampleCount
+                      , const uint32_t iterationCount
+                      , const uint32_t updateInterval
                       , const math::vec3& cameraPosition
                       , const math::vec2& cameraAngles
                       , const float fov
@@ -37,6 +39,8 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mLogTextBox( new wxTextCtrl( mLeftSplitter, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY ) )
   , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mLeftSplitter ) )
   , mRayTracer( std::make_unique<rt::RayTracer>( imageSize, cameraPosition, cameraAngles, fov, focalLength, aperture ) )
+  , mDeviceImageBuffer( nullptr )
+  , mSize( 0 )
   , mCameraModeActive( false )
   , mPreviousMouseScreenPosition( 0.0f, 0.0f )
   , mAnglePerAxes( anglesPerAxes )
@@ -54,6 +58,12 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
                                                         , 1.0f, 1.0f, 100.0f
                                                         , 1.0f, 10000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Iterations", util::ToString( iterationCount )
+                                                      , 1.0f, 1.0f, 10.0f
+                                                      , 1.0f, 1000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Updates", util::ToString( updateInterval )
+                                                      , 1.0f, 1.0f, 10.0f
+                                                      , 1.0f, 1000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
                                                     , 1.0f, 0.1f, 5.0f
                                                     , 1.0f, 179.0f ) );
@@ -88,24 +98,23 @@ MainFrame::~MainFrame()
   logger::Logger::Instance().SetMessageCallback();
 }
 
-void MainFrame::TracerUpdateCallback( rt::ColorConstPtr /*deviceImageBuffer*/, const std::size_t /*size*/ )
+void MainFrame::TracerUpdateCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size )
 {
   // called on Render thread
 
-  // gpu side data is here:
-  //deviceImageBuffer
-  //size
+  mDeviceImageBuffer = deviceImageBuffer;
+  mSize = size;
 
   wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_UPDATE ) );
 }
 
-void MainFrame::TracerFinishedCallback( rt::ColorConstPtr /*deviceImageBuffer*/, const std::size_t /*size*/ )
+void MainFrame::TracerFinishedCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size )
 {
   // called on Render thread
 
-  // gpu side data is here:
-  //deviceImageBuffer
-  //size
+  mDeviceImageBuffer = deviceImageBuffer;
+  mSize = size;
+
   wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_FINISHED ) );
 }
 
@@ -191,9 +200,9 @@ void MainFrame::RequestTrace()
   logger::Logger::Instance() << "MainFrame::RequestTrace\n";
   try
   {
-    const uint32_t iterationCount = 100;
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
-    const uint32_t updateInterval = 10;
+    const uint32_t iterationCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
+    const uint32_t updateInterval( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
 
     mRayTracer->Trace( iterationCount
                        , sampleCount
@@ -209,69 +218,15 @@ void MainFrame::OnTracerUpdate()
 {
   // called on UI thread
 
-  //logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
-
-  // TODO do as fast as possible
-  //err = cudaGraphicsMapResources( 1, &pboCudaResource );
-  //if ( err != cudaSuccess )
-  //{
-  //  throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
-  //}
-  //
-  //rt::Color* pixelBufferPtr = nullptr;
-  //size_t size = 0;
-  //err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
-  //                                                        , &size
-  //                                                        , pboCudaResource );
-  //if ( err != cudaSuccess )
-  //{
-  //  throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
-  //}
-  //
-  //
-  //err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
-  //if ( err != cudaSuccess )
-  //{
-  //  throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
-  //}
-  //
-  //cudaMemcpy( &hostImageBuffer.front(), deviceImageBuffer, size, cudaMemcpyDeviceToDevice);
-
-
+  mGLCanvas->UpdatePBO( mDeviceImageBuffer, mSize );
   mGLCanvas->UpdateTextureAndRefresh();
 }
 
 void MainFrame::OnTracerFinished()
 {
   // called on UI thread
-  //logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
 
-  //err = cudaGraphicsMapResources( 1, &pboCudaResource );
-  //if ( err != cudaSuccess )
-  //{
-  //  throw std::runtime_error( std::string( "cudaGraphicsMapResources failed: " ) + cudaGetErrorString( err ) );
-  //}
-  //
-  //rt::Color* pixelBufferPtr = nullptr;
-  //size_t size = 0;
-  //err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
-  //                                            , &size
-  //                                            , pboCudaResource );
-  //if ( err != cudaSuccess )
-  //{
-  //  throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
-  //}
-  //
-  //
-  //
-  //err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
-  //if ( err != cudaSuccess )
-  //{
-  //  throw std::runtime_error( std::string( "cudaGraphicsUnmapResources failed: " ) + cudaGetErrorString( err ) );
-  //}
-
-  //cudaMemcpy( &hostImageBuffer.front(), deviceImageBuffer, size, cudaMemcpyDeviceToDevice);
-
+  mGLCanvas->UpdatePBO( mDeviceImageBuffer, mSize );
   mGLCanvas->UpdateTextureAndRefresh();
 }
 

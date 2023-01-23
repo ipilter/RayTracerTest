@@ -101,6 +101,44 @@ const math::uvec2& GLCanvas::ImageSize() const
   return mImageSize;
 }
 
+void GLCanvas::UpdatePBO( rt::ColorPtr deviceImageBuffer, std::size_t deviceImageBufferSize )
+{
+  // TODO: do as fast as possible
+
+  auto pboCudaResource = GetPboCudaResource();
+  cudaError_t err = cudaGraphicsMapResources( 1, &pboCudaResource );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGraphicsMapResources failed. Reason: " << cudaGetErrorString( err ) << "\n";
+  }
+
+  rt::Color* pixelBufferPtr = nullptr;
+  size_t pboSize = 0;
+  err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
+                                              , &pboSize
+                                              , pboCudaResource );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGraphicsResourceGetMappedPointer failed. Reason: " << cudaGetErrorString( err ) << "\n";
+  }
+
+  const bool ok = deviceImageBuffer != nullptr && pboSize == deviceImageBufferSize;
+  if ( ok )
+  {
+    err = cudaMemcpy( pixelBufferPtr, deviceImageBuffer, deviceImageBufferSize, cudaMemcpyDeviceToDevice);
+    if ( err != cudaSuccess )
+    {
+      logger::Logger::Instance() << "cudaMemcpy failed. Reason: " << cudaGetErrorString( err ) << "\n";
+    }
+  }
+
+  err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGraphicsUnmapResources failed. Reason: " << cudaGetErrorString( err ) << "\n";
+  }
+}
+
 void GLCanvas::UpdateTextureAndRefresh()
 {
   try
@@ -123,7 +161,7 @@ void GLCanvas::UpdateTextureAndRefresh()
   }
 }
 
-cudaGraphicsResource_t GLCanvas::GetPboCudeResource() const
+cudaGraphicsResource_t GLCanvas::GetPboCudaResource() const
 {
   auto it = mPboCudaResourceTable.find( mPBOs.back()->Id() );
   if ( it == mPboCudaResourceTable.end() )

@@ -12,6 +12,8 @@ class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 public:
   MainFrame( const math::uvec2& imageSize
              , const uint32_t sampleCount
+             , const uint32_t iterationCount
+             , const uint32_t updateInterval
              , const math::vec3& cameraPosition
              , const math::vec2& cameraAngles
              , const float fov
@@ -25,13 +27,13 @@ public:
 
   virtual ~MainFrame();
 
-  void TracerUpdateCallback( rt::ColorConstPtr deviceImageBuffer, const std::size_t size );
-  void TracerFinishedCallback( rt::ColorConstPtr deviceImageBuffer, const std::size_t size );
+  void TracerUpdateCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size );
+  void TracerFinishedCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size );
 
 private:
   void InitializeUIElements();
   void RequestTrace();
-
+  
   void OnResizeButton( wxCommandEvent& event );
   void OnRenderButton( wxCommandEvent& event );
   void OnStopButton( wxCommandEvent& event );
@@ -58,6 +60,11 @@ private:
 
   GLCanvas::uptr mGLCanvas;
   rt::RayTracer::uptr mRayTracer;
+  
+  // TODO reference to raytracer's imagebuffer
+  // wrap these into a single variable
+  rt::ColorPtr mDeviceImageBuffer;
+  std::size_t mSize;
 
   bool mCameraModeActive;
   math::vec2 mPreviousMouseScreenPosition;

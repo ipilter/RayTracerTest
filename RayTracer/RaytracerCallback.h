@@ -6,5 +6,5 @@
 
 namespace rt
 {
-using CallBackFunction = std::function<void( rt::ColorConstPtr deviceImageBuffer, const std::size_t size )>;
+using CallBackFunction = std::function<void( rt::ColorPtr deviceImageBuffer, const std::size_t size )>;
 }

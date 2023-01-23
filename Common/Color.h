@@ -8,7 +8,7 @@ namespace rt
 
 using Channel = uint8_t;
 using Color = uint32_t;
-using ColorConstPtr = const Color* const;
+using ColorPtr = Color*;
 
 // BGRA -> r|g|b|a
 inline rt::Channel GetComponent( const Color& color, const uint32_t& idx )

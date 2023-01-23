@@ -21,6 +21,8 @@ private:
   MainFrame::uptr mMainFrame;
   math::uvec2 mTextureSize;
   uint32_t mSampleCount;
+  uint32_t mIterationCount;
+  uint32_t mUpdateInterval;
   math::vec3 mCameraPosition;
   math::vec2 mCameraAngles;
   float mFov;

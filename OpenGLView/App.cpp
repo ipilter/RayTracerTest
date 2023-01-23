@@ -12,6 +12,8 @@ App::App()
   : mMainFrame( nullptr )
   , mTextureSize( 3840 / 100, 2160 / 100 )
   , mSampleCount( 1 )
+  , mIterationCount( 100 )
+  , mUpdateInterval( 10 )
   , mCameraPosition( 0.0f )
   , mCameraAngles( 0.0f )
   , mFov( 70.0f )
@@ -34,6 +36,8 @@ bool App::OnInit()
   const wxDisplay display;
   mMainFrame = std::make_unique<MainFrame>( mTextureSize
                                             , mSampleCount
+                                            , mIterationCount
+                                            , mUpdateInterval
                                             , mCameraPosition
                                             , mCameraAngles
                                             , mFov
@@ -65,6 +69,8 @@ void App::OnInitCmdLine( wxCmdLineParser& parser )
     { wxCMD_LINE_OPTION, "w", "width", "render width (pixels)", wxCMD_LINE_VAL_NUMBER },
     { wxCMD_LINE_OPTION, "h", "height", "render height (pixels)", wxCMD_LINE_VAL_NUMBER },
     { wxCMD_LINE_OPTION, "s", "samples", "samples per pixel", wxCMD_LINE_VAL_NUMBER },
+    { wxCMD_LINE_OPTION, "i", "samples", "iteration count", wxCMD_LINE_VAL_NUMBER },
+    { wxCMD_LINE_OPTION, "u", "samples", "update interval", wxCMD_LINE_VAL_NUMBER },
 
     { wxCMD_LINE_OPTION, "cx", "camerax", "camera position x", wxCMD_LINE_VAL_NUMBER },
     { wxCMD_LINE_OPTION, "cy", "cameray", "camera position y", wxCMD_LINE_VAL_NUMBER },
@@ -106,6 +112,18 @@ bool App::OnCmdLineParsed( wxCmdLineParser& parser )
   if ( parser.Found( wxT( "s" ), &parsedOption ) )
   {
     mSampleCount = static_cast<uint32_t>( parsedOption );
+  }
+
+  // iteration count
+  if ( parser.Found( wxT( "i" ), &parsedOption ) )
+  {
+    mIterationCount = static_cast<uint32_t>( parsedOption );
+  }
+
+  // update interval
+  if ( parser.Found( wxT( "u" ), &parsedOption ) )
+  {
+    mUpdateInterval = static_cast<uint32_t>( parsedOption );
   }
 
   // camera position
