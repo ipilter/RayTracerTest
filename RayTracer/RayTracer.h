@@ -17,7 +17,7 @@ public:
   using CallBackFunction = std::function<void()>;
 
 public:
-  RayTracer( const math::uvec2& pixelBufferSize
+  RayTracer( const math::uvec2& imageSize
              , const math::vec3& cameraPosition
              , const math::vec2& cameraAngles
              , const float fov
@@ -25,10 +25,9 @@ public:
              , const float aperture );
   ~RayTracer();
 
-  void Trace( cudaGraphicsResource_t pboCudaResource
-              , const uint32_t iterationCount
+  void Trace( const uint32_t iterationCount
               , const uint32_t samplesPerIteration
-              , const uint32_t updatesOnIteration );
+              , const uint32_t updateInterval );
   void Cancel();
   void Resize( const math::uvec2& size );
   void SetCameraParameters( const float fov

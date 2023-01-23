@@ -19,7 +19,7 @@ public:
   using CallBackFunction = std::function<void()>;
 
 public:
-  RayTracerImpl( const math::uvec2& pixelBufferSize
+  RayTracerImpl( const math::uvec2& imageSize
                  , const math::vec3& cameraPosition
                  , const math::vec2& cameraAngles
                  , const float fov
@@ -27,18 +27,15 @@ public:
                  , const float aperture );
   ~RayTracerImpl();
 
-  void Trace( cudaGraphicsResource_t pboCudaResource
-              , const uint32_t iterationCount
+  void Trace( const uint32_t iterationCount
               , const uint32_t samplesPerIteration
-              , const uint32_t updatesOnIteration );
+              , const uint32_t updateInterval );
   void Cancel();
-
   void Resize( const math::uvec2& size );
   void SetCameraParameters( const float fov
                             , const float focalLength
                             , const float aperture );
   void RotateCamera( const math::vec2& angles );
-
   void SetUpdateCallback( CallBackFunction callback );
   void SetFinishedCallback( CallBackFunction callback );
 
@@ -53,14 +50,16 @@ private:
   __host__ cudaError_t RunConverterKernel( const math::uvec2& bufferSize
                                            , const uint32_t channelCount
                                            , float*& renderBuffer
-                                           , rt::color_t* pixelBufferPtr );
+                                           , rt::color_t* imageBuffer );
 
-  __host__ void TraceFunct( cudaGraphicsResource_t pboCudaResource 
-                            , const uint32_t iterationCount
+  __host__ void TraceFunct( const uint32_t iterationCount
                             , const uint32_t samplesPerIteration
-                            , const uint32_t updatesOnIteration );
+                            , const uint32_t updateInterval );
 
-  math::uvec2 mPixelBufferSize;
+  void ReleaseBuffers();
+
+private:
+  math::uvec2 mBufferSize;
   curandState_t* mRandomStates;
   float* mRenderBuffer;
   std::unique_ptr<rt::ThinLensCamera> mCamera;

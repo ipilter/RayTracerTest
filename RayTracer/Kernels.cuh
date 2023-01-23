@@ -11,24 +11,24 @@
 
 namespace rt
 {
-__global__ void ConverterKernel( const math::uvec2 renderBufferSize
+__global__ void ConverterKernel( const math::uvec2 bufferSize
                                      , const uint32_t channelCount
                                      , float* renderBuffer
-                                     , rt::color_t* pixelBufferPtr )
+                                     , rt::color_t* imageBuffer )
 {
   using namespace math;
 
   const uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
-  if ( pixel.x >= renderBufferSize.x || pixel.y >= renderBufferSize.y )
+  if ( pixel.x >= bufferSize.x || pixel.y >= bufferSize.y )
   {
     return;
   }
 
-  const uint32_t offset( pixel.x + pixel.y * renderBufferSize.x );
-  const uint32_t offset2( channelCount * pixel.x + pixel.y * renderBufferSize.x * channelCount );
-  pixelBufferPtr[offset] = utils::Color( 255u * renderBuffer[offset2]
-                                         , 255u * renderBuffer[offset2 + 1]
-                                         , 255u * renderBuffer[offset2 + 2] );
+  const uint32_t offset( pixel.x + pixel.y * bufferSize.x );
+  const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
+  imageBuffer[offset] = utils::Color( 255u * renderBuffer[offset2]
+                                      , 255u * renderBuffer[offset2 + 1]
+                                      , 255u * renderBuffer[offset2 + 2] );
 }
 
 // Note: arguments MUST be by value or by pointer. Pointer MUST be in device mem space
@@ -52,6 +52,9 @@ __global__ void TraceKernel( float* renderBuffer
 
   const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
 
+  // TODO do not calculate the average here, render data must be a more-than-float-pixel-value array 
+  // and store the corrent accumulated value and the total samples used separately
+  // in the render -> image data conversion will do the average counting
   vec3 accu( 0.0f );
   for ( auto s( 0 ); s < sampleCount; ++s )
   {

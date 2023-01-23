@@ -180,18 +180,32 @@ void MainFrame::RequestTrace()
   {
     const uint32_t iterationCount = 100;
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
-    const uint32_t updateOnIteration = 10;
+    const uint32_t updateInterval = 10;
 
-    cudaGraphicsResource_t res = mGLCanvas->GetPboCudeResource();
-    mRayTracer->Trace( res
-                       , iterationCount
+    mRayTracer->Trace( iterationCount
                        , sampleCount
-                       , updateOnIteration );
+                       , updateInterval );
   }
   catch( const std::exception& e )
   {
     logger::Logger::Instance() << "Error: " << e.what() << "\n";
   }
+}
+
+void MainFrame::OnTracerUpdate()
+{
+  logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
+
+  // TODO update pbo from the tracer's image buffer
+  mGLCanvas->UpdateTextureAndRefresh();
+}
+
+void MainFrame::OnTracerFinished()
+{
+  logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
+
+  // TODO update pbo from the tracer's image buffer
+  mGLCanvas->UpdateTextureAndRefresh();
 }
 
 void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
@@ -340,21 +354,4 @@ void MainFrame::OnShow( wxShowEvent& event )
   {
     RequestTrace();
   }
-}
-
-void MainFrame::OnTracerUpdate()
-{
-  logger::Logger::Instance() << "MainFrame::OnTracerUpdate\n";
-
-  // intermediate update (pbo -> texture -> update view)
-  // update texture from pbo and request a dedraw event
-  mGLCanvas->UpdateTextureAndRefresh();
-}
-
-void MainFrame::OnTracerFinished()
-{
-  logger::Logger::Instance() << "MainFrame::OnTracerFinished\n";
-
-  // update texture from pbo and request a dedraw event
-  mGLCanvas->UpdateTextureAndRefresh();
 }

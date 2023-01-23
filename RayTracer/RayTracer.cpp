@@ -23,15 +23,13 @@ RayTracer::~RayTracer()
   delete mImpl;
 }
 
-void RayTracer::Trace( cudaGraphicsResource_t pboCudaResource
-                       , const uint32_t iterationCount
+void RayTracer::Trace( const uint32_t iterationCount
                        , const uint32_t samplesPerIteration
-                       , const uint32_t updatesOnIteration )
+                       , const uint32_t updateInterval )
 {
-  mImpl->Trace( pboCudaResource
-                , iterationCount
+  mImpl->Trace( iterationCount
                 , samplesPerIteration
-                , updatesOnIteration );
+                , updateInterval );
 }
 
 void RayTracer::Cancel()
