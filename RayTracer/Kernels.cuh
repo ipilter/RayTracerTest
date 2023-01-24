@@ -14,6 +14,7 @@ namespace rt
 
 // Note: arguments MUST be by value or by pointer. Pointer MUST be in device mem space
 __global__ void TraceKernel( float* renderBuffer
+                             , uint32_t* sampleCountBuffer
                              , const math::uvec2 bufferSize
                              , const uint32_t channelCount
                              , rt::ThinLensCamera camera
@@ -28,34 +29,31 @@ __global__ void TraceKernel( float* renderBuffer
     return;
   }
 
-  const uint32_t offset( pixel.x + pixel.y * bufferSize.x );
-  curandState_t randomState = randomStates[offset];
+  const uint32_t pixelOffset( pixel.x + pixel.y * bufferSize.x );
+  const uint32_t valueOffset( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
 
-  const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
+  curandState_t randomState = randomStates[pixelOffset];
 
-  // TODO do not calculate the average here, render data must be a more-than-float-pixel-value array 
-  // and store the corrent accumulated value and the total samples used separately
-  // in the render -> image data conversion will do the average counting
-  vec3 accu( 0.0f );
+  math::vec3 accu(0.0f);
   for ( auto s( 0 ); s < sampleCount; ++s )
   {
     const rt::Ray ray( camera.GetRay( pixel, bufferSize, randomState ) );
     accu += ray.direction();
   }
-  accu /= static_cast<float>( sampleCount );
 
-  // save final pixel color
-  renderBuffer[offset2] = ( renderBuffer[offset2] + accu.x ) / 2.0f;
-  renderBuffer[offset2 + 1] = ( renderBuffer[offset2 + 1] + accu.y ) / 2.0f;
-  renderBuffer[offset2 + 2] = ( renderBuffer[offset2 + 2] + accu.z ) / 2.0f;
-  //renderBuffer[offset2+3] += ?;
+  sampleCountBuffer[pixelOffset] += sampleCount;
+  renderBuffer[valueOffset + 0] += accu.x;
+  renderBuffer[valueOffset + 1] += accu.y;
+  renderBuffer[valueOffset + 2] += accu.z;
+  //renderBuffer[valueOffset + 3] = ;
 
-  randomStates[offset] = randomState;
+  randomStates[pixelOffset] = randomState;
 }
 
 __global__ void ConverterKernel( const math::uvec2 bufferSize
                                  , const uint32_t channelCount
                                  , float* renderBuffer
+                                 , uint32_t* sampleCountBuffer
                                  , rt::Color* imageBuffer )
 {
   using namespace math;
@@ -66,11 +64,12 @@ __global__ void ConverterKernel( const math::uvec2 bufferSize
     return;
   }
 
-  const uint32_t offset( pixel.x + pixel.y * bufferSize.x );
-  const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
-  imageBuffer[offset] = utils::GetColor( 255u * renderBuffer[offset2]
-                                      , 255u * renderBuffer[offset2 + 1]
-                                      , 255u * renderBuffer[offset2 + 2] );
+  const uint32_t pixelOffset( pixel.x + pixel.y * bufferSize.x );
+  const uint32_t valueOffset( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
+  const float sampleCount( static_cast<float>( sampleCountBuffer[pixelOffset] ) );
+  imageBuffer[pixelOffset] = utils::GetColor(   255u * ( renderBuffer[valueOffset + 0] / sampleCount )
+                                              , 255u * ( renderBuffer[valueOffset + 1] / sampleCount )
+                                              , 255u * ( renderBuffer[valueOffset + 2] / sampleCount ) );
 }
 
 }

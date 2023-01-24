@@ -21,6 +21,7 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& imageSize
                               , const float aperture )
   : mBufferSize( imageSize )
   , mRenderBuffer( nullptr )
+  , mSampleCountBuffer( nullptr )
   , mImageBuffer( nullptr )
   , mRandomStates( nullptr )
   , mCamera( new rt::ThinLensCamera( cameraPosition, cameraAngles, fov, focalLength, aperture ) )
@@ -30,6 +31,7 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& imageSize
   {
     random::CreateStates( mBufferSize, mRandomStates );
     render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+    render::CreateSampleCountBuffer( mBufferSize, mSampleCountBuffer );
     render::CreateImageBuffer( mBufferSize, mImageBuffer );
 
     logger::Logger::Instance() << "Raytracer created. Image buffer size: " << mBufferSize << "\n";
@@ -85,6 +87,7 @@ void RayTracerImpl::Resize( const math::uvec2& size )
   mBufferSize = size;
   random::CreateStates( mBufferSize, mRandomStates );
   render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+  render::CreateSampleCountBuffer( mBufferSize, mSampleCountBuffer );
   render::CreateImageBuffer( mBufferSize, mImageBuffer );
 }
 
@@ -112,31 +115,27 @@ void RayTracerImpl::SetFinishedCallback( rt::CallBackFunction callback )
   mFinishedCallback = callback;
 }
 
-cudaError_t RayTracerImpl::RunConverterKernel( const math::uvec2& bufferSize
-                                               , const uint32_t channelCount
-                                               , float*& renderBuffer
-                                               , rt::Color* imageBuffer )
+cudaError_t RayTracerImpl::RunConverterKernel()
 {
   const dim3 threadsPerBlock( 32, 32, 1 );
-  const dim3 blocksPerGrid( static_cast<uint32_t>( glm::ceil( bufferSize.x / static_cast<float>( threadsPerBlock.x ) ) )
-                            , static_cast<uint32_t>( glm::ceil( bufferSize.y / static_cast<float>( threadsPerBlock.y ) ) )
+  const dim3 blocksPerGrid( static_cast<uint32_t>( glm::ceil( mBufferSize.x / static_cast<float>( threadsPerBlock.x ) ) )
+                            , static_cast<uint32_t>( glm::ceil( mBufferSize.y / static_cast<float>( threadsPerBlock.y ) ) )
                             , 1 );
 
-  ConverterKernel<<<blocksPerGrid, threadsPerBlock>>>( bufferSize, channelCount, renderBuffer, imageBuffer );
+  ConverterKernel<<<blocksPerGrid, threadsPerBlock>>>( mBufferSize
+                                                       , ChannelCount()
+                                                       , mRenderBuffer
+                                                       , mSampleCountBuffer
+                                                       , mImageBuffer );
   return cudaGetLastError();
 }
 
-cudaError_t RayTracerImpl::RunTraceKernel( float* renderBuffer
-                                           , const math::uvec2& bufferSize
-                                           , const uint32_t channelCount
-                                           , rt::ThinLensCamera& camera
-                                           , const uint32_t sampleCount
-                                           , curandState_t* randomStates )
+cudaError_t RayTracerImpl::RunTraceKernel( const uint32_t sampleCount )
 {
   // TODO fast way, do better!
   const dim3 threadsPerBlock( 32, 32, 1 );
-  const dim3 blocksPerGrid( static_cast<uint32_t>( glm::ceil( bufferSize.x / static_cast<float>( threadsPerBlock.x ) ) )
-                            , static_cast<uint32_t>( glm::ceil( bufferSize.y / static_cast<float>( threadsPerBlock.y ) ) )
+  const dim3 blocksPerGrid( static_cast<uint32_t>( glm::ceil( mBufferSize.x / static_cast<float>( threadsPerBlock.x ) ) )
+                            , static_cast<uint32_t>( glm::ceil( mBufferSize.y / static_cast<float>( threadsPerBlock.y ) ) )
                             , 1 );
 
   cudaEvent_t start, stop;
@@ -144,7 +143,13 @@ cudaError_t RayTracerImpl::RunTraceKernel( float* renderBuffer
   cudaEventCreate( &stop );
 
   cudaEventRecord( start, 0 );
-  TraceKernel<<<blocksPerGrid, threadsPerBlock>>> ( mRenderBuffer, bufferSize, channelCount, camera, sampleCount, randomStates );
+  TraceKernel<<<blocksPerGrid, threadsPerBlock>>> ( mRenderBuffer
+                                                    , mSampleCountBuffer
+                                                    , mBufferSize
+                                                    , ChannelCount()
+                                                    , *mCamera
+                                                    , sampleCount
+                                                    , mRandomStates );
 
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop ); // TODO: make this switchable (on/off)
@@ -162,12 +167,13 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
   try
   {
     render::ClearRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+    render::ClearSampleCountBuffer( mBufferSize, mSampleCountBuffer );
 
     cudaError_t err = cudaSuccess;
     for ( uint32_t i( 0 ); !mStopped && i < iterationCount; ++i )
     {
       // TODO: make kernel call cancellable if possible (imageine long runtimer here, cancel operation would wait for this call)
-      err = RunTraceKernel( mRenderBuffer, mBufferSize, ChannelCount(), *mCamera, samplesPerIteration, mRandomStates );
+      err = RunTraceKernel( samplesPerIteration );
       if ( err != cudaSuccess )
       {
         throw std::runtime_error( std::string( "RunTraceKernel failed: " ) + cudaGetErrorString( err ) );
@@ -180,7 +186,7 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
         cudaDeviceSynchronize();
 
         // run render -> image conversion
-        err = RunConverterKernel( mBufferSize, ChannelCount(), mRenderBuffer, mImageBuffer );
+        err = RunConverterKernel();
         if ( err != cudaSuccess )
         {
           throw std::runtime_error( std::string( "RunConverterKernel failed: " ) + cudaGetErrorString( err ) );
@@ -202,7 +208,7 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
     cudaDeviceSynchronize();
 
     // run render -> image conversion
-    err = RunConverterKernel( mBufferSize, ChannelCount(), mRenderBuffer, mImageBuffer );
+    err = RunConverterKernel();
     if ( err != cudaSuccess )
     {
       throw std::runtime_error( std::string( "RunConverterKernel failed: " ) + cudaGetErrorString( err ) );
@@ -236,6 +242,12 @@ void RayTracerImpl::ReleaseBuffers()
   if ( err != cudaSuccess )
   {
     logger::Logger::Instance() << "Error: cudaFree failed freeing mRenderBuffer. (" << cudaGetErrorString( err ) << "\n";
+  }
+
+  err = cudaFree( mSampleCountBuffer );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "Error: cudaFree failed freeing mSampleCountBuffer. (" << cudaGetErrorString( err ) << "\n";
   }
 
   err = cudaFree( mImageBuffer );

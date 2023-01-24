@@ -29,6 +29,28 @@ inline void ClearRenderBuffer( const math::uvec2& bufferSize
   }
 }
 
+inline void CreateSampleCountBuffer( const math::uvec2& bufferSize
+                                     , uint32_t*& sampleCountBuffer )
+{
+  const size_t byteCount = bufferSize.x * bufferSize.y * sizeof( uint32_t );
+  cudaError_t err = cudaMalloc( reinterpret_cast<void**>( &sampleCountBuffer ), byteCount );
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( std::string( "cudaMalloc failed. (" ) + cudaGetErrorString( err ) + ")\n");
+  }
+}
+
+inline void ClearSampleCountBuffer( const math::uvec2& bufferSize
+                                    , uint32_t*& sampleCountBuffer )
+{
+  const size_t byteCount = bufferSize.x * bufferSize.y * sizeof( uint32_t );
+  cudaError_t err = cudaMemset( sampleCountBuffer, 0, byteCount );
+  if ( err != cudaSuccess )
+  {
+    throw std::runtime_error( std::string( "cudaMemset failed. (" ) + cudaGetErrorString( err ) + ")\n");
+  }
+}
+
 inline void CreateImageBuffer( const math::uvec2& bufferSize
                                , rt::Color*& imageBuffer )
 {

@@ -38,17 +38,8 @@ public:
   void SetFinishedCallback( rt::CallBackFunction callback );
 
 private:
-  __host__ cudaError_t RunTraceKernel( float* renderBuffer
-                                       , const math::uvec2& bufferSize
-                                       , const uint32_t channelCount
-                                       , rt::ThinLensCamera& camera
-                                       , const uint32_t sampleCount
-                                       , curandState_t* randomStates );
-
-  __host__ cudaError_t RunConverterKernel( const math::uvec2& bufferSize
-                                           , const uint32_t channelCount
-                                           , float*& renderBuffer
-                                           , rt::Color* imageBuffer );
+  __host__ cudaError_t RunTraceKernel( const uint32_t sampleCount );
+  __host__ cudaError_t RunConverterKernel();
 
   __host__ void TraceFunct( const uint32_t iterationCount
                             , const uint32_t samplesPerIteration
@@ -64,6 +55,7 @@ private:
 private:
   math::uvec2 mBufferSize;
   float* mRenderBuffer; // TODO no raw ptr
+  uint32_t* mSampleCountBuffer; // TODO no raw ptr
   rt::Color* mImageBuffer; // TODO no raw ptr
 
   curandState_t* mRandomStates; // TODO no raw ptr
