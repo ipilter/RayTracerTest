@@ -2,7 +2,7 @@
 #include "Common\Math.h"
 #include <cuda_runtime.h>
 
-namespace render
+namespace rt
 {
 
 inline void CreateRenderBuffer( const math::uvec2& bufferSize

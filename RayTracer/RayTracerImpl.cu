@@ -30,9 +30,9 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& imageSize
   try
   {
     random::CreateStates( mBufferSize, mRandomStates );
-    render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
-    render::CreateSampleCountBuffer( mBufferSize, mSampleCountBuffer );
-    render::CreateImageBuffer( mBufferSize, mImageBuffer );
+    rt::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+    rt::CreateSampleCountBuffer( mBufferSize, mSampleCountBuffer );
+    rt::CreateImageBuffer( mBufferSize, mImageBuffer );
 
     logger::Logger::Instance() << "Raytracer created. Image buffer size: " << mBufferSize << "\n";
   }
@@ -86,9 +86,9 @@ void RayTracerImpl::Resize( const math::uvec2& size )
 
   mBufferSize = size;
   random::CreateStates( mBufferSize, mRandomStates );
-  render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
-  render::CreateSampleCountBuffer( mBufferSize, mSampleCountBuffer );
-  render::CreateImageBuffer( mBufferSize, mImageBuffer );
+  rt::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+  rt::CreateSampleCountBuffer( mBufferSize, mSampleCountBuffer );
+  rt::CreateImageBuffer( mBufferSize, mImageBuffer );
 }
 
 void RayTracerImpl::SetCameraParameters( const float fov
@@ -166,8 +166,8 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
 {
   try
   {
-    render::ClearRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
-    render::ClearSampleCountBuffer( mBufferSize, mSampleCountBuffer );
+    rt::ClearRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
+    rt::ClearSampleCountBuffer( mBufferSize, mSampleCountBuffer );
 
     cudaError_t err = cudaSuccess;
     for ( uint32_t i( 0 ); !mStopped && i < iterationCount; ++i )
