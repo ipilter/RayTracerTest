@@ -11,25 +11,6 @@
 
 namespace rt
 {
-__global__ void ConverterKernel( const math::uvec2 bufferSize
-                                     , const uint32_t channelCount
-                                     , float* renderBuffer
-                                     , rt::Color* imageBuffer )
-{
-  using namespace math;
-
-  const uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
-  if ( pixel.x >= bufferSize.x || pixel.y >= bufferSize.y )
-  {
-    return;
-  }
-
-  const uint32_t offset( pixel.x + pixel.y * bufferSize.x );
-  const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
-  imageBuffer[offset] = utils::GetColor( 255u * renderBuffer[offset2]
-                                      , 255u * renderBuffer[offset2 + 1]
-                                      , 255u * renderBuffer[offset2 + 2] );
-}
 
 // Note: arguments MUST be by value or by pointer. Pointer MUST be in device mem space
 __global__ void TraceKernel( float* renderBuffer
@@ -70,6 +51,26 @@ __global__ void TraceKernel( float* renderBuffer
   //renderBuffer[offset2+3] += ?;
 
   randomStates[offset] = randomState;
+}
+
+__global__ void ConverterKernel( const math::uvec2 bufferSize
+                                 , const uint32_t channelCount
+                                 , float* renderBuffer
+                                 , rt::Color* imageBuffer )
+{
+  using namespace math;
+
+  const uvec2 pixel( blockIdx.x * blockDim.x + threadIdx.x, blockIdx.y * blockDim.y + threadIdx.y );
+  if ( pixel.x >= bufferSize.x || pixel.y >= bufferSize.y )
+  {
+    return;
+  }
+
+  const uint32_t offset( pixel.x + pixel.y * bufferSize.x );
+  const uint32_t offset2( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
+  imageBuffer[offset] = utils::GetColor( 255u * renderBuffer[offset2]
+                                      , 255u * renderBuffer[offset2 + 1]
+                                      , 255u * renderBuffer[offset2 + 2] );
 }
 
 }

@@ -17,9 +17,6 @@ namespace rt
 class RayTracerImpl
 {
 public:
-  
-
-public:
   RayTracerImpl( const math::uvec2& imageSize
                  , const math::vec3& cameraPosition
                  , const math::vec2& cameraAngles

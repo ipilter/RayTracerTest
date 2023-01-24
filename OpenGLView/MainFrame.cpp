@@ -50,14 +50,14 @@ MainFrame::MainFrame( const math::uvec2& imageSize
 
   // Parameters
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
-                                                                        , 100.0f, 1.0f, 1000.0f
-                                                                        , 1.0f, 100000.0f ) );
+                                                      , 100.0f, 1.0f, 1000.0f
+                                                      , 1.0f, 100000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y )
-                                                       , 100.0f, 1.0f, 1000.0f
-                                                       , 1.0f, 100000.0f ) );
+                                                      , 100.0f, 1.0f, 1000.0f
+                                                      , 1.0f, 100000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
-                                                        , 1.0f, 1.0f, 100.0f
-                                                        , 1.0f, 10000.0f ) );
+                                                      , 1.0f, 1.0f, 100.0f
+                                                      , 1.0f, 10000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Iterations", util::ToString( iterationCount )
                                                       , 1.0f, 1.0f, 10.0f
                                                       , 1.0f, 1000.0f ) );
@@ -65,11 +65,11 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                                                       , 1.0f, 1.0f, 10.0f
                                                       , 1.0f, 1000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
-                                                    , 1.0f, 0.1f, 5.0f
-                                                    , 1.0f, 179.0f ) );
+                                                      , 1.0f, 0.1f, 5.0f
+                                                      , 1.0f, 179.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
-                                                         , 10.0f, 1.0f, 50.0f
-                                                         , 1.0f, 10000.0f ) );
+                                                      , 10.0f, 1.0f, 50.0f
+                                                      , 1.0f, 10000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
                                                       , 1.0f, 0.1f, 2.0f
                                                       , 0.0f, 22.0f ) ); // min == 0 = pinhole
@@ -88,7 +88,6 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                                       std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" )
                                                       , std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) ) ) );
 
-  // TODO add some default values for them
   InitializeUIElements();
 }
 

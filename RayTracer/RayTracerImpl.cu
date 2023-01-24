@@ -30,7 +30,6 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& imageSize
   {
     random::CreateStates( mBufferSize, mRandomStates );
     render::CreateRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
-    render::ClearRenderBuffer( mBufferSize, ChannelCount(), mRenderBuffer );
     render::CreateImageBuffer( mBufferSize, mImageBuffer );
 
     logger::Logger::Instance() << "Raytracer created. Image buffer size: " << mBufferSize << "\n";
