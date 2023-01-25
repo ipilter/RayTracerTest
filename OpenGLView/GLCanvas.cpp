@@ -13,17 +13,17 @@
 GLCanvas::CudaResourceGuard::CudaResourceGuard( GLCanvas& glCanvas )
   : mGLCanvas( glCanvas )
 {
-  mGLCanvas.MapCudaResource( mGLCanvas.GetPbo() );
+  mGLCanvas.MapCudaResource( mGLCanvas.mPBOs.back() );
 }
 
-rt::color_t* GLCanvas::CudaResourceGuard::GetDevicePtr()
+rt::Color* GLCanvas::CudaResourceGuard::GetDevicePtr()
 {
-  return mGLCanvas.GetMappedCudaPointer( mGLCanvas.GetPbo() );
+  return mGLCanvas.GetMappedCudaPointer( mGLCanvas.mPBOs.back() );
 }
 
 GLCanvas::CudaResourceGuard::~CudaResourceGuard()
 {
-  mGLCanvas.UnMapCudaResource( mGLCanvas.GetPbo() );
+  mGLCanvas.UnMapCudaResource( mGLCanvas.mPBOs.back() );
 }
 
 // OpenGL render surface with CUDA connection
@@ -101,15 +101,62 @@ const math::uvec2& GLCanvas::ImageSize() const
   return mImageSize;
 }
 
-void GLCanvas::RequestRender()
+void GLCanvas::UpdatePBO( rt::ColorPtr deviceImageBuffer, std::size_t deviceImageBufferSize )
+{
+  // TODO: do as fast as possible
+  Timer t;
+  t.start();
+
+  auto pboCudaResource = GetPboCudaResource();
+  cudaError_t err = cudaGraphicsMapResources( 1, &pboCudaResource );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGraphicsMapResources failed. Reason: " << cudaGetErrorString( err ) << "\n";
+  }
+  
+  rt::Color* pixelBufferPtr = nullptr;
+  size_t pboSize = 0;
+  err = cudaGraphicsResourceGetMappedPointer( reinterpret_cast<void**>( &pixelBufferPtr )
+                                              , &pboSize
+                                              , pboCudaResource );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGraphicsResourceGetMappedPointer failed. Reason: " << cudaGetErrorString( err ) << "\n";
+  }
+  
+  const bool ok = deviceImageBuffer != nullptr && pboSize == deviceImageBufferSize;
+  if ( ok )
+  {
+    err = cudaMemcpy( pixelBufferPtr, deviceImageBuffer, deviceImageBufferSize, cudaMemcpyDeviceToDevice);
+    if ( err != cudaSuccess )
+    {
+      logger::Logger::Instance() << "cudaMemcpy failed. Reason: " << cudaGetErrorString( err ) << "\n";
+    }
+  }
+  else
+  {
+    logger::Logger::Instance() << "device image data and PBO size mismatch\n";
+  }
+  
+  err = cudaGraphicsUnmapResources( 1, &pboCudaResource );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGraphicsUnmapResources failed. Reason: " << cudaGetErrorString( err ) << "\n";
+  }
+
+  t.stop();
+  logger::Logger::Instance() << "UpdatePBO took: " << t.ms() << " ms\n";
+}
+
+void GLCanvas::UpdateTextureAndRefresh()
 {
   try
   {
-    GetPbo()->Bind();
-      mTextures.back()->Bind();
-      mTextures.back()->UpdateFromPBO();
-      mTextures.back()->Unbind();
-    GetPbo()->Unbind();
+    mPBOs.back()->Bind();
+    mTextures.back()->Bind();
+    mTextures.back()->UpdateFromPBO();
+    mTextures.back()->Unbind();
+    mPBOs.back()->Unbind();
 
     Refresh();
   }
@@ -121,6 +168,18 @@ void GLCanvas::RequestRender()
   {
     logger::Logger::Instance() << "Unknown error during GLCanvas::Update\n";
   }
+}
+
+cudaGraphicsResource_t GLCanvas::GetPboCudaResource() const
+{
+  auto it = mPboCudaResourceTable.find( mPBOs.back()->Id() );
+  if ( it == mPboCudaResourceTable.end() )
+  {
+    std::stringstream ss;
+    ss << "GetPboCudeResource failed. PBO id is " << mPBOs.back()->Id();
+    throw std::runtime_error( ss.str() );
+  }
+  return it->second;
 }
 
 void GLCanvas::Initialize()
@@ -154,9 +213,6 @@ void GLCanvas::Initialize()
       throw std::runtime_error( reinterpret_cast<const char*>( msg ) );
     }
 
-    auto fp64 = glewGetExtension( "GL_ARB_gpu_shader_fp64" );
-    logger::Logger::Instance() << "GL_ARB_gpu_shader_fp64 " << ( fp64 == 1 ? "supported" : "not supported" ) << "\n";
-
     // TODO: what is the safest way to ensure this (if pixel data is rgba)?
     glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
   }
@@ -171,7 +227,9 @@ void GLCanvas::Initialize()
     }
 
     cudaDeviceProp prop = { 0 };
-    int gpuId = 0;
+    const int gpuId = 0;
+    cudaSetDevice( gpuId );
+
     err = cudaGetDeviceProperties( &prop, gpuId );
     if ( err != cudaSuccess )
     {
@@ -213,29 +271,28 @@ void GLCanvas::CreateTextures()
   const size_t byteCount( pixelCount * sizeof( uint32_t ) );
 
   // create PBO
-  // We are using a single pbo here as this will be our render target
+  // We are using a single pbo here as this will be our intermediate pixel storage between the GL texture and the Tracer's own pixel data
   // The rendered texture will be updated from this buffer when a render phase is done
-  // TODO: double buffering was tired but no significant help. Postponed it for later..
   mPBOs.push_back( std::make_unique<gl::PBO>() );
-  GetPbo()->Bind();
-    // allocate PBO memory
-    GetPbo()->Allocate( byteCount );
-    
-    // register as cuda interop resource
-    RegisterCudaResource( GetPbo() );
-    
-    // init PBO data
-    {
-      rt::color_t* devicePixelBufferPtr( GetPbo()->MapPboBuffer() );
-      std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::Color( 10, 10, 10 ) );
-      GetPbo()->UnMapPboBuffer();
-    }
+  mPBOs.back()->Bind();
+  // allocate PBO memory
+  mPBOs.back()->Allocate( byteCount );
+  
+  // register as cuda interop resource
+  RegisterCudaResource( mPBOs.back() );
+  
+  // init PBO data
+  {
+    rt::Color* devicePixelBufferPtr( mPBOs.back()->MapPboBuffer() );
+    std::fill( devicePixelBufferPtr, devicePixelBufferPtr + pixelCount, rt::GetColor( 10, 10, 10 ) );
+    mPBOs.back()->UnMapPboBuffer();
+  }
 
-    // create texture from PBO pixels
-    mTextures.back()->Bind();
-      mTextures.back()->CreateFromPBO();
-    mTextures.back()->Unbind();
-  GetPbo()->Unbind();
+  // create texture from PBO pixels
+  mTextures.back()->Bind();
+  mTextures.back()->CreateFromPBO();
+  mTextures.back()->Unbind();
+  mPBOs.back()->Unbind();
 
   logger::Logger::Instance() << "Texture with dimensions " << mTextures.back()->Size() << " created\n";
 }
@@ -282,7 +339,7 @@ void GLCanvas::RegisterCudaResource( const gl::PBO::uptr& pbo )
   auto it = mPboCudaResourceTable.insert( std::make_pair( pbo->Id(), cudaGraphicsResource_t( 0 ) ) );
   if ( it.second )
   {
-    cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsNone );
+    cudaError_t err = cudaGraphicsGLRegisterBuffer( &it.first->second, pbo->Id(), cudaGraphicsMapFlagsWriteDiscard );
     if ( err != cudaSuccess )
     {
       throw std::runtime_error( std::string( "cudaGraphicsGLRegisterBuffer failed: " ) + cudaGetErrorString( err ) );
@@ -317,9 +374,9 @@ void GLCanvas::UnMapCudaResource( const gl::PBO::uptr& pbo )
   }
 }
 
-rt::color_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
+rt::Color* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
 {
-  rt::color_t* ptr = nullptr;
+  rt::Color* ptr = nullptr;
   size_t mapped_size = 0;
 
   // TODO searching every time
@@ -329,22 +386,6 @@ rt::color_t* GLCanvas::GetMappedCudaPointer( const gl::PBO::uptr& pbo )
     throw std::runtime_error( std::string( "cudaGraphicsResourceGetMappedPointer failed: " ) + cudaGetErrorString( err ) );
   }
   return ptr;
-}
-
-rt::color_t* GLCanvas::GetRenderTarget()
-{
-  MapCudaResource( GetPbo() );
-  return GetMappedCudaPointer( GetPbo() );
-}
-
-void GLCanvas::ReleaseRenderTarget()
-{
-  UnMapCudaResource( GetPbo() );
-}
-
-gl::PBO::uptr& GLCanvas::GetPbo()
-{
-  return mPBOs.front();
 }
 
 void GLCanvas::OnPaint( wxPaintEvent& /*event*/ )
@@ -405,7 +446,7 @@ void GLCanvas::OnMouseMove( wxMouseEvent& event )
     mCameras.back()->Translate( math::vec3( mouse_delta, 0.0f ) );
 
     mPreviousMouseScreenPosition = screenPos;
-    Refresh();
+    UpdateTextureAndRefresh();
   }
 
   PropagateEventToMainFrame( event );
@@ -423,7 +464,7 @@ void GLCanvas::OnMouseWheel( wxMouseEvent& event )
   mCameras.back()->Scale( math::vec3( scale, scale, 1.0f ) );
   mCameras.back()->Translate( math::vec3( -worldFocusPoint, 0.0f ) );
 
-  Refresh();
+  UpdateTextureAndRefresh();
 }
 
 void GLCanvas::OnMouseRightDown( wxMouseEvent& /*event*/ )

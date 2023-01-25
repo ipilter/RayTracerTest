@@ -8,7 +8,7 @@
 namespace random
 {
 
-__host__ void RunInitRandomKernel( const math::uvec2& size, curandState_t*& states );
+__host__ void CreateStates( const math::uvec2& size, curandState_t*& states );
 
 inline __device__ math::vec2 UnifromOnDisk( curandState_t& randomState )
 {

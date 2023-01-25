@@ -113,10 +113,12 @@ attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Random.cuh" />
+    <ClInclude Include="RaytracerCallback.h" />
     <ClInclude Include="RayTracerImpl.cuh" />
     <ClInclude Include="RayTracer.h" />
+    <ClInclude Include="RenderBuffer.cuh" />
     <ClInclude Include="RenderData.cuh" />
-    <ClInclude Include="RenderKernel.cuh" />
+    <ClInclude Include="Kernels.cuh" />
     <ClInclude Include="ThinLensCamera.cuh" />
     <ClInclude Include="Ray.cuh" />
     <ClInclude Include="DeviceUtils.cuh" />

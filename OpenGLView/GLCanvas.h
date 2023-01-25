@@ -27,7 +27,7 @@ public:
     CudaResourceGuard( GLCanvas& glCanvas );
     ~CudaResourceGuard();
 
-    rt::color_t* GetDevicePtr();
+    rt::Color* GetDevicePtr();
 
   private:
     GLCanvas& mGLCanvas;
@@ -42,7 +42,10 @@ public:
   void Resize( const math::uvec2& imageSize );
   const math::uvec2& ImageSize() const;
 
-  void RequestRender();
+  void UpdatePBO( rt::ColorPtr deviceImageBuffer, std::size_t deviceImageBufferSize );
+  void UpdateTextureAndRefresh();
+
+  cudaGraphicsResource_t GetPboCudaResource() const;
 
 private:
   void Initialize();
@@ -59,13 +62,7 @@ private:
 
   void MapCudaResource( const gl::PBO::uptr& pbo );
   void UnMapCudaResource( const gl::PBO::uptr& pbo );
-  rt::color_t* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
-
-  // Device memory access Create a CudaResourceGuard before calling GetFrontPbo().
-  // Release of cuda resources is automatic
-  gl::PBO::uptr& GetPbo();
-  rt::color_t* GetRenderTarget();
-  void ReleaseRenderTarget();
+  rt::Color* GetMappedCudaPointer( const gl::PBO::uptr& pbo );
 
   void OnPaint( wxPaintEvent& event );
   void OnSize( wxSizeEvent& event );

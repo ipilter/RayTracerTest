@@ -13,25 +13,25 @@ namespace rt
 class Bitmap
 {
 public:
-  Bitmap( const math::uvec2& size, const color_t fillColor = 0x00000000 )
+  Bitmap( const math::uvec2& size, const Color fillColor = 0x00000000 )
     : mSize( size )
     , mImageData( static_cast<size_t>( size.x )* size.y, fillColor )
   {}
 
-  Bitmap( const math::uvec2& size, std::vector<color_t>& pixelArray )
+  Bitmap( const math::uvec2& size, std::vector<Color>& pixelArray )
     : mSize( size )
     , mImageData()
   {
     std::swap( mImageData, pixelArray );
   }
 
-  void SetPixel( const uint32_t x, const uint32_t y, const color_t& color )
+  void SetPixel( const uint32_t x, const uint32_t y, const Color& color )
   {
     const uint32_t offset( y * mSize.x + x );
     mImageData[offset] = color;
   }
 
-  color_t GetPixel( const uint32_t x, const uint32_t y ) const
+  Color GetPixel( const uint32_t x, const uint32_t y ) const
   {
     const uint32_t offset( y * mSize.x + x );
     return mImageData[offset];
@@ -52,12 +52,12 @@ public:
 
     Header header( mSize.x, mSize.y );
     header.Write( ostream );
-    ostream.write( reinterpret_cast<const char*>( &mImageData.front() ), sizeof( color_t ) * mSize.x * mSize.y );
+    ostream.write( reinterpret_cast<const char*>( &mImageData.front() ), sizeof( Color ) * mSize.x * mSize.y );
   }
 
 private:
   glm::uvec2 mSize;
-  std::vector<color_t> mImageData;
+  std::vector<Color> mImageData;
 
 private:
   class Header
@@ -79,7 +79,7 @@ private:
     {
     public:
       FileHeader( const int32_t w, const int32_t h )
-        : mFileSize( sizeof( FileHeader ) + sizeof( ImageHeader ) + sizeof( ColorHeader ) + sizeof( color_t ) * w * h )
+        : mFileSize( sizeof( FileHeader ) + sizeof( ImageHeader ) + sizeof( ColorHeader ) + sizeof( Color ) * w * h )
         , mDataOffset( sizeof( FileHeader ) + sizeof( ImageHeader ) + sizeof( ColorHeader ) )
       {}
 

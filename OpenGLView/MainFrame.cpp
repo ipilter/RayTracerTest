@@ -14,8 +14,13 @@
 #include "Common\Logger.h"
 #include "Common\Math.h"
 
+wxDEFINE_EVENT( wxEVT_TRACER_UPDATE, wxCommandEvent );
+wxDEFINE_EVENT( wxEVT_TRACER_FINISHED, wxCommandEvent );
+
 MainFrame::MainFrame( const math::uvec2& imageSize
                       , const uint32_t sampleCount
+                      , const uint32_t iterationCount
+                      , const uint32_t updateInterval
                       , const math::vec3& cameraPosition
                       , const math::vec2& cameraAngles
                       , const float fov
@@ -34,6 +39,8 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mLogTextBox( new wxTextCtrl( mLeftSplitter, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY ) )
   , mGLCanvas( std::make_unique<GLCanvas>( imageSize, this, mLeftSplitter ) )
   , mRayTracer( std::make_unique<rt::RayTracer>( imageSize, cameraPosition, cameraAngles, fov, focalLength, aperture ) )
+  , mDeviceImageBuffer( nullptr )
+  , mSize( 0 )
   , mCameraModeActive( false )
   , mPreviousMouseScreenPosition( 0.0f, 0.0f )
   , mAnglePerAxes( anglesPerAxes )
@@ -43,27 +50,33 @@ MainFrame::MainFrame( const math::uvec2& imageSize
 
   // Parameters
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
-                                                                        , 100.0f, 1.0f, 1000.0f
-                                                                        , 1.0f, 100000.0f ) );
+                                                      , 100.0f, 1.0f, 1000.0f
+                                                      , 1.0f, 100000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y )
-                                                       , 100.0f, 1.0f, 1000.0f
-                                                       , 1.0f, 100000.0f ) );
+                                                      , 100.0f, 1.0f, 1000.0f
+                                                      , 1.0f, 100000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
-                                                        , 1.0f, 1.0f, 100.0f
-                                                        , 1.0f, 10000.0f ) );
+                                                      , 1.0f, 1.0f, 100.0f
+                                                      , 1.0f, 10000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Iterations", util::ToString( iterationCount )
+                                                      , 1.0f, 1.0f, 10.0f
+                                                      , 1.0f, 1000.0f ) );
+  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Updates", util::ToString( updateInterval )
+                                                      , 1.0f, 1.0f, 10.0f
+                                                      , 1.0f, 1000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
-                                                    , 1.0f, 0.1f, 5.0f
-                                                    , 1.0f, 179.0f ) );
+                                                      , 1.0f, 0.1f, 5.0f
+                                                      , 1.0f, 179.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
-                                                         , 10.0f, 1.0f, 50.0f
-                                                         , 1.0f, 10000.0f ) );
+                                                      , 10.0f, 1.0f, 50.0f
+                                                      , 1.0f, 10000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
                                                       , 1.0f, 0.1f, 2.0f
                                                       , 0.0f, 22.0f ) ); // min == 0 = pinhole
 
   // Buttons
-  mButtons.push_back( std::make_pair( "Render", 
-                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Render" )
+  mButtons.push_back( std::make_pair( "Trace", 
+                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Trace" )
                                                       , std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) ) ) );
   mButtons.push_back( std::make_pair( "Stop", 
                                       std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" )
@@ -75,7 +88,6 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                                       std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" )
                                                       , std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) ) ) );
 
-  // TODO add some default values for them
   InitializeUIElements();
 }
 
@@ -83,6 +95,26 @@ MainFrame::~MainFrame()
 {
   // detach this object from the logger
   logger::Logger::Instance().SetMessageCallback();
+}
+
+void MainFrame::TracerUpdateCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size )
+{
+  // called on Render thread
+
+  mDeviceImageBuffer = deviceImageBuffer;
+  mSize = size;
+
+  wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_UPDATE ) );
+}
+
+void MainFrame::TracerFinishedCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size )
+{
+  // called on Render thread
+
+  mDeviceImageBuffer = deviceImageBuffer;
+  mSize = size;
+
+  wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_FINISHED ) );
 }
 
 void MainFrame::InitializeUIElements()
@@ -138,16 +170,23 @@ void MainFrame::InitializeUIElements()
       const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
       const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
       mRayTracer->SetCameraParameters( fov, focalLength, aperture );
-      RequestRender();
+      
+      RequestTrace();
     };
 
-    mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestRender(); } );
+    // User interaction callbacks
+    mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
     mParameterControls[3]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[4]->SetOnMouseWheelCallback( cameraParameterCallback );
     mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
 
-    // Ray tracer callback
-    mRayTracer->SetDoneCallback( std::bind( &MainFrame::OnRenderDone, this ) );
+    // Ray tracer callbacks 
+    // these will be called by the rendering thread
+    mRayTracer->SetUpdateCallback( std::bind( &MainFrame::TracerUpdateCallback, this, std::placeholders::_1, std::placeholders::_2 ) );
+    mRayTracer->SetFinishedCallback( std::bind( &MainFrame::TracerFinishedCallback, this, std::placeholders::_1, std::placeholders::_2 ) );
+    // these will be called by the UI thread
+    Bind( wxEVT_TRACER_UPDATE, std::bind( &MainFrame::OnTracerUpdate, this ) );
+    Bind( wxEVT_TRACER_FINISHED, std::bind( &MainFrame::OnTracerFinished, this ) );
   }
   catch( const std::exception& e )
   {
@@ -155,19 +194,39 @@ void MainFrame::InitializeUIElements()
   }
 }
 
-void MainFrame::RequestRender()
+void MainFrame::RequestTrace()
 {
+  logger::Logger::Instance() << "MainFrame::RequestTrace\n";
   try
   {
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
+    const uint32_t iterationCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
+    const uint32_t updateInterval( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
 
-    GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-    mRayTracer->Trace( cudaGuard.GetDevicePtr(), sampleCount );
+    mRayTracer->Trace( iterationCount
+                       , sampleCount
+                       , updateInterval );
   }
   catch( const std::exception& e )
   {
     logger::Logger::Instance() << "Error: " << e.what() << "\n";
   }
+}
+
+void MainFrame::OnTracerUpdate()
+{
+  // called on UI thread
+
+  mGLCanvas->UpdatePBO( mDeviceImageBuffer, mSize );
+  mGLCanvas->UpdateTextureAndRefresh();
+}
+
+void MainFrame::OnTracerFinished()
+{
+  // called on UI thread
+
+  mGLCanvas->UpdatePBO( mDeviceImageBuffer, mSize );
+  mGLCanvas->UpdateTextureAndRefresh();
 }
 
 void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
@@ -186,7 +245,7 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
     mRayTracer->Resize( newImageSize );
 
     // Rerender frame with the new size
-    RequestRender();
+    RequestTrace();
   }
   catch( const std::exception& e )
   {
@@ -196,11 +255,13 @@ void MainFrame::OnResizeButton( wxCommandEvent& /*event*/ )
 
 void MainFrame::OnRenderButton( wxCommandEvent& /*event*/ )
 {
-  RequestRender();
+  RequestTrace();
 }
 
 void MainFrame::OnStopButton( wxCommandEvent& /*event*/ )
-{}
+{
+  mRayTracer->Stop();
+}
 
 void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 {
@@ -216,11 +277,11 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 
     // copy pixel data from GPU to CPU then write to disc
     const size_t pixelCount( mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y ) ;
-    std::vector<rt::color_t> hostMem( pixelCount, 0 );
+    std::vector<rt::Color> hostMem( pixelCount, 0 );
 
     {
       GLCanvas::CudaResourceGuard cudaGuard( *mGLCanvas );
-      cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::color_t ), cudaMemcpyDeviceToHost ) );
+      cudaError_t err( cudaMemcpy( &hostMem.front(), cudaGuard.GetDevicePtr(), pixelCount * sizeof( rt::Color ), cudaMemcpyDeviceToHost ) );
       if ( err != cudaSuccess )
       {
         throw std::runtime_error( std::string( "cannot copy pixel data from device to host: " ) + cudaGetErrorString( err ) );
@@ -288,7 +349,7 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
     mRayTracer->RotateCamera( glm::radians( anglePerPixel * delta ) );
 
     // request a new render from the tracer with the current parameters
-    RequestRender();
+    RequestTrace();
 
     mPreviousMouseScreenPosition = screenPos;
   }
@@ -314,11 +375,6 @@ void MainFrame::OnShow( wxShowEvent& event )
 {
   if ( event.IsShown() )
   {
-    RequestRender();
+    RequestTrace();
   }
-}
-
-void MainFrame::OnRenderDone()
-{
-  mGLCanvas->RequestRender();
 }

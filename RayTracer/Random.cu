@@ -7,7 +7,7 @@
 namespace random
 {
 
-__global__ void InitRandomKernel( uint32_t seed
+__global__ void InitRandomStates( uint32_t seed
                             , math::uvec2 size
                             , curandState_t* states )
 {
@@ -29,7 +29,7 @@ __global__ void InitRandomKernel( uint32_t seed
   states[offset] = state;
 }
 
-__host__  void RunInitRandomKernel( const math::uvec2& size, curandState_t*& states )
+__host__ void CreateStates( const math::uvec2& size, curandState_t*& states )
 {
   cudaError_t err = cudaMalloc( reinterpret_cast<void**>( &states ), size.x * size.y * sizeof( curandState_t ) );
   if ( err != cudaSuccess )
@@ -42,7 +42,7 @@ __host__  void RunInitRandomKernel( const math::uvec2& size, curandState_t*& sta
                             , static_cast<uint32_t>( glm::ceil( size.y / static_cast<float>( threadsPerBlock.y ) ) )
                             , 1 );
 
-  InitRandomKernel<<<blocksPerGrid, threadsPerBlock>>>( static_cast<uint32_t>( time( nullptr ) ), size, states );
+  InitRandomStates<<<blocksPerGrid, threadsPerBlock>>>( static_cast<uint32_t>( time( nullptr ) ), size, states );
 
   err = cudaGetLastError();
   if ( err != cudaSuccess )
