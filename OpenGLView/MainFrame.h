@@ -7,6 +7,8 @@
 #include "RayTracer\RayTracer.h"
 #include "RayTracer\RaytracerCallback.h"
 
+#include "Common\Timer.h"
+
 class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 {
 public:
@@ -43,6 +45,13 @@ private:
   void OnMouseLeftDown( wxMouseEvent& event );
   void OnMouseLeftUp( wxMouseEvent& event );
   void OnMouseLeave( wxMouseEvent& event );
+  void OnMouseWheel( wxMouseEvent& event );
+
+  void OnMouseRightDown( wxMouseEvent& event );
+  void OnMouseRightUp( wxMouseEvent& event );
+  void OnMouseMiddleDown( wxMouseEvent& event );
+  void OnMouseMiddleUp( wxMouseEvent& event );
+
   void OnShow( wxShowEvent& event );
   void OnTracerUpdate();
   void OnTracerFinished();
@@ -66,7 +75,19 @@ private:
   rt::ColorPtr mDeviceImageBuffer;
   std::size_t mSize;
 
-  bool mCameraModeActive;
-  math::vec2 mPreviousMouseScreenPosition;
+  // Tracer control
+  // used for interacting the raytracer camera
+  bool mIsTracerCameraMode;
+  // moving the mouse cursor across the screen results this amount of rotation of the tracer camera.
+  // (smaller the value, slower the camera movement. 
   math::vec2 mAnglePerAxes;
+  // filter out update request on mouse move. update for every pixel movement is too much
+  Timer mTimer;
+  double mLastTime;
+
+  // OpenGL view control
+  // used for interacting the openg view camera
+  bool mIsViewCameraMode;
+  // mouse position in GLCanvas coordinate space
+  math::vec2 mPreviousMouseScreenPosition;
 };

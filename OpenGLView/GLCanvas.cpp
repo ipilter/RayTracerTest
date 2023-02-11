@@ -34,8 +34,6 @@ GLCanvas::GLCanvas( const math::uvec2& imageSize
   , mMainFrame( mainFrame )
   , mImageSize( imageSize )
   , mQuadSize( 1.0f * ( mImageSize.x / static_cast<float>( mImageSize.y ) ), 1.0f )
-  , mPanningActive( false )
-  , mPreviousMouseScreenPosition( 0.0f, 0.0f )
 {
   try
   {
@@ -182,6 +180,36 @@ cudaGraphicsResource_t GLCanvas::GetPboCudaResource() const
   return it->second;
 }
 
+math::vec2 GLCanvas::ScreenToWorld( const math::vec2& screen )
+{
+  const math::vec4 ndc( screen.x / static_cast<float>( GetSize().GetX() ) * 2.0f - 1.0f
+                        , -screen.y / static_cast<float>( GetSize().GetY() ) * 2.0f + 1.0f
+                        , 0.0f
+                        , 1.0f );
+
+  const math::mat4 invVpMatrix( glm::inverse( mCameras.back()->ViewProj() ) );
+  const math::vec4 worldSpacePoint( invVpMatrix * ndc ); // !! never forget !!
+  return math::vec2( worldSpacePoint );
+}
+
+math::ivec2 GLCanvas::WorldToImage( const math::vec2& worldSpacePoint )
+{
+  const float x( worldSpacePoint.x / mQuadSize.x * mTextures.back()->Size().x );
+  const float y( -worldSpacePoint.y / mQuadSize.y * mTextures.back()->Size().y + mTextures.back()->Size().y );  // texture`s and world`s y are in the opposite order
+
+  if ( x < 0.0f || x >= static_cast<float>( mTextures.back()->Size().x )
+       || y < 0.0f || y >= static_cast<float>( mTextures.back()->Size().y ) )
+  {
+    return math::ivec2( -1, -1 );
+  }
+  return math::ivec2( glm::floor( x ), glm::floor( y ) );
+}
+
+gl::Camera::uptr& GLCanvas::Camera()
+{
+  return mCameras.back();
+}
+
 void GLCanvas::Initialize()
 {
   // Event handlers
@@ -309,31 +337,6 @@ void GLCanvas::CreateView()
   mCameras.push_back( std::make_unique<gl::Camera>( math::vec3( -mQuadSize.x / 2.0f, -mQuadSize.y / 2.0f, 0.0f ) ) );
 }
 
-math::vec2 GLCanvas::ScreenToWorld( const math::vec2& screen )
-{
-  const math::vec4 ndc( screen.x / static_cast<float>( GetSize().GetX() ) * 2.0f - 1.0f
-                        , -screen.y / static_cast<float>( GetSize().GetY() ) * 2.0f + 1.0f
-                        , 0.0f
-                        , 1.0f );
-
-  const math::mat4 invVpMatrix( glm::inverse( mCameras.back()->ViewProj() ) );
-  const math::vec4 worldSpacePoint( invVpMatrix * ndc ); // !! never forget !!
-  return math::vec2( worldSpacePoint );
-}
-
-math::ivec2 GLCanvas::WorldToImage( const math::vec2& worldSpacePoint )
-{
-  const float x( worldSpacePoint.x / mQuadSize.x * mTextures.back()->Size().x );
-  const float y( -worldSpacePoint.y / mQuadSize.y * mTextures.back()->Size().y + mTextures.back()->Size().y );  // texture`s and world`s y are in the opposite order
-
-  if ( x < 0.0f || x >= static_cast<float>( mTextures.back()->Size().x )
-       || y < 0.0f || y >= static_cast<float>( mTextures.back()->Size().y ) )
-  {
-    return math::ivec2( -1, -1 );
-  }
-  return math::ivec2( glm::floor( x ), glm::floor( y ) );
-}
-
 void GLCanvas::RegisterCudaResource( const gl::PBO::uptr& pbo )
 {
   auto it = mPboCudaResourceTable.insert( std::make_pair( pbo->Id(), cudaGraphicsResource_t( 0 ) ) );
@@ -435,43 +438,23 @@ void GLCanvas::OnSize( wxSizeEvent& event )
 
 void GLCanvas::OnMouseMove( wxMouseEvent& event )
 {
-  if ( mPanningActive )
-  {
-    const math::ivec2 screenPos( event.GetX(), event.GetY() );
-    const math::vec2 worldPos( ScreenToWorld( screenPos ) );
-    const math::ivec2 imagePos( WorldToImage( worldPos ) );
-
-    const math::vec2 mouse_delta( worldPos - ScreenToWorld( mPreviousMouseScreenPosition ) );
-
-    mCameras.back()->Translate( math::vec3( mouse_delta, 0.0f ) );
-
-    mPreviousMouseScreenPosition = screenPos;
-    UpdateTextureAndRefresh();
-  }
-
   PropagateEventToMainFrame( event );
 }
 
 void GLCanvas::OnMouseWheel( wxMouseEvent& event )
 {
-  const float scaleFactor( 0.1f );
-  const float scale( event.GetWheelRotation() < 0 ? 1.0f - scaleFactor : 1.0f + scaleFactor );
-
-  const math::vec2 screenFocusPoint( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
-  const math::vec2 worldFocusPoint( ScreenToWorld( screenFocusPoint ) );
-
-  mCameras.back()->Translate( math::vec3( worldFocusPoint, 0.0f ) );
-  mCameras.back()->Scale( math::vec3( scale, scale, 1.0f ) );
-  mCameras.back()->Translate( math::vec3( -worldFocusPoint, 0.0f ) );
-
-  UpdateTextureAndRefresh();
+  PropagateEventToMainFrame( event );
 }
 
-void GLCanvas::OnMouseRightDown( wxMouseEvent& /*event*/ )
-{}
+void GLCanvas::OnMouseRightDown( wxMouseEvent& event )
+{
+  PropagateEventToMainFrame( event );
+}
 
-void GLCanvas::OnMouseRightUp( wxMouseEvent& /*event*/ )
-{}
+void GLCanvas::OnMouseRightUp( wxMouseEvent& event )
+{
+  PropagateEventToMainFrame( event );
+}
 
 void GLCanvas::OnMouseLeftDown( wxMouseEvent& event )
 {
@@ -485,19 +468,16 @@ void GLCanvas::OnMouseLeftUp( wxMouseEvent& event )
 
 void GLCanvas::OnMouseMiddleDown( wxMouseEvent& event )
 {
-  mPreviousMouseScreenPosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
-  mPanningActive = true;
+  PropagateEventToMainFrame( event );
 }
 
-void GLCanvas::OnMouseMiddleUp( wxMouseEvent& /*event*/ )
+void GLCanvas::OnMouseMiddleUp( wxMouseEvent& event )
 {
-  mPanningActive = false;
+  PropagateEventToMainFrame( event );
 }
 
 void GLCanvas::OnMouseLeave( wxMouseEvent& event )
 {
-  mPanningActive = false;
-
   PropagateEventToMainFrame( event );
 }
 

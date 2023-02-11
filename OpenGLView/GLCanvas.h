@@ -47,15 +47,17 @@ public:
 
   cudaGraphicsResource_t GetPboCudaResource() const;
 
+  math::vec2 ScreenToWorld( const math::vec2& screenSpacePoint );
+  math::ivec2 WorldToImage( const math::vec2& worldSpacePoint );
+
+  gl::Camera::uptr& Camera();
+
 private:
   void Initialize();
   void CreateMeshes();
   void CreateTextures();
   void CreateShaders();
   void CreateView();
-
-  math::vec2 ScreenToWorld( const math::vec2& screenSpacePoint );
-  math::ivec2 WorldToImage( const math::vec2& worldSpacePoint );
 
   void RegisterCudaResource( const gl::PBO::uptr& pbo );
   void UnRegisterCudaResource( const gl::PBO::uptr& pbo );
@@ -91,9 +93,6 @@ private:
   std::vector<gl::Camera::uptr> mCameras;
 
   std::map<uint32_t, cudaGraphicsResource_t> mPboCudaResourceTable;
-
-  bool mPanningActive;
-  math::vec2 mPreviousMouseScreenPosition;
 
   GLCanvas( const GLCanvas& ) = delete;
   GLCanvas( GLCanvas&& ) = delete;

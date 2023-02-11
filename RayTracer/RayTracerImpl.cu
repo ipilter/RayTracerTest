@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <chrono>
 #include <device_launch_parameters.h>
 
 #include "RayTracerImpl.cuh"
@@ -195,6 +196,9 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
         // notify view to update the view's texture
         mUpdateCallback( mImageBuffer, mBufferSize.x * mBufferSize.y * sizeof( rt::Color ) );
       }
+
+      using namespace std::chrono_literals;
+      //std::this_thread::sleep_for( 500ms );
     }
 
     // early reaturn if cancel was called on us

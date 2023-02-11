@@ -1,9 +1,11 @@
 #include <wx\filedlg.h> // Must be before any std string include. tonns of unsage usage errors otherwise in wxWidgets code
 #include <wx\filename.h>
+#include <wx\stdpaths.h>
 
 #include <sstream>
 #include <memory>
 #include <functional>
+#include <filesystem>
 
 #include <cudart_platform.h>
 
@@ -41,9 +43,11 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   , mRayTracer( std::make_unique<rt::RayTracer>( imageSize, cameraPosition, cameraAngles, fov, focalLength, aperture ) )
   , mDeviceImageBuffer( nullptr )
   , mSize( 0 )
-  , mCameraModeActive( false )
-  , mPreviousMouseScreenPosition( 0.0f, 0.0f )
+  , mIsTracerCameraMode( false )
   , mAnglePerAxes( anglesPerAxes )
+  , mLastTime(0.0)
+  , mIsViewCameraMode( false )
+  , mPreviousMouseScreenPosition( 0.0f, 0.0f )
 {
   // attach this object to the logger. Any log message sent to the log will propagated to the OnLogMessage callback
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
@@ -160,8 +164,13 @@ void MainFrame::InitializeUIElements()
     Bind( wxEVT_LEFT_DOWN, &MainFrame::OnMouseLeftDown, this );
     Bind( wxEVT_LEFT_UP, &MainFrame::OnMouseLeftUp, this );
     Bind( wxEVT_MOTION, &MainFrame::OnMouseMove, this );
+    Bind( wxEVT_MOUSEWHEEL, &MainFrame::OnMouseWheel, this );
     Bind( wxEVT_SHOW, &MainFrame::OnShow, this );
     Bind( wxEVT_LEAVE_WINDOW, &MainFrame::OnMouseLeave, this );
+    Bind( wxEVT_RIGHT_DOWN, &MainFrame::OnMouseRightDown, this );
+    Bind( wxEVT_RIGHT_UP, &MainFrame::OnMouseRightUp, this );
+    Bind( wxEVT_MIDDLE_DOWN, &MainFrame::OnMouseMiddleDown, this );
+    Bind( wxEVT_MIDDLE_UP, &MainFrame::OnMouseMiddleUp, this );
 
     // Parameter connections
     auto cameraParameterCallback = [this]()
@@ -267,13 +276,32 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 {
   try
   {
-    wxFileDialog dlg( this, "Select file", wxEmptyString, "image01", "Bmp|*.bmp", wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+    const std::pair<std::string, std::string> format{ "bmp", "Bmp|*.bmp"};
+
+    size_t index = 0;
+    const std::string rootPath = "e:\\"; // TODO: use user desktop or similar path
+    const std::string defaultName = "image";
+
+    {
+      std::string filePath = rootPath + defaultName + util::ToString( index ) + "." + format.first;
+      while ( std::filesystem::exists( filePath ) )
+      {
+        filePath = rootPath + defaultName + util::ToString( ++index ) + "." + format.first;
+      }
+    }
+
+    wxFileDialog dlg( this
+                      , "Select file"
+                      , rootPath
+                      , defaultName + util::ToString( index )
+                      , format.second
+                      , wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_CANCEL )
     {
       return;
     }
 
-    const wxString path( wxFileName( dlg.GetPath() ).GetFullPath() );
+    const std::string path( wxFileName( dlg.GetPath() ).GetFullPath().ToStdString() );
 
     // copy pixel data from GPU to CPU then write to disc
     const size_t pixelCount( mGLCanvas->ImageSize().x * mGLCanvas->ImageSize().y ) ;
@@ -289,8 +317,8 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
     }
 
     rt::Bitmap bmp( mGLCanvas->ImageSize(), hostMem );
-    bmp.Write( path.ToStdString() );
-    logger::Logger::Instance() << "Saved to " << path.ToStdString() << "\n";
+    bmp.Write( path );
+    logger::Logger::Instance() << "Saved to " << path << "\n";
   }
   catch( const std::exception& e )
   {
@@ -303,9 +331,30 @@ void MainFrame::OnLogMessage( const std::string& msg )
   mLogTextBox->WriteText( msg );
 }
 
+void MainFrame::OnMouseLeftDown( wxMouseEvent& event )
+{
+  mPreviousMouseScreenPosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
+  mIsTracerCameraMode = true;
+  mTimer.start();
+}
+
+void MainFrame::OnMouseLeftUp( wxMouseEvent& /*event*/ )
+{
+  mIsTracerCameraMode = false;
+  mTimer.stop();
+}
+
+void MainFrame::OnMouseLeave( wxMouseEvent& /*event*/ )
+{
+  mIsTracerCameraMode = false;
+  mIsViewCameraMode = false;
+  mTimer.stop();
+}
+
 void MainFrame::OnMouseMove( wxMouseEvent& event )
 {
-  if ( mCameraModeActive )
+  //auto current = mTimer.ms(); // TODO use timer current value and the previous one to get the elapsed time. if it is bigger than a certain threshold, do the traceing, updating suff
+  if ( mIsTracerCameraMode )
   {
     // calculate angle along x and y axes 
     // 
@@ -318,10 +367,10 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
     // so instead we work with distances as they remain the same in every part of the screen.
     // the idea is the following: assign an angle to the screen's dimensions. For example 180 deg for the full screen width.
     // let say the width is 100 pixel then 1 pixel mouse movement yields 180/100 degree angle
-    
+
     // user defined and precomputed values
     const math::vec2 clientSize( static_cast<float>( GetClientSize().x, static_cast<float>( GetClientSize().y ) ) );
-    
+
     // apply the image aspect ratio to the angle per view dimensions to try to make the movement equal on both axis
     // TODO double check this
     math::vec2 aspect( mGLCanvas->ImageSize().x / static_cast<float>( mGLCanvas->ImageSize().y ), 1.0f );
@@ -329,11 +378,11 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
     {
       aspect = math::vec2( mGLCanvas->ImageSize().y / static_cast<float>( mGLCanvas->ImageSize().x ), 1.0f );
     }
-    
+
     const math::vec2 anglePerPixel( mAnglePerAxes * aspect / clientSize ); // [degrees]
 
-    // if SHIFT key is pressed rotating around Y axis only
-    // if CONTROL key is pressed rotating around X axis only
+                                                                           // if SHIFT key is pressed rotating around Y axis only
+                                                                           // if CONTROL key is pressed rotating around X axis only
     const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
                                 , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
 
@@ -353,22 +402,70 @@ void MainFrame::OnMouseMove( wxMouseEvent& event )
 
     mPreviousMouseScreenPosition = screenPos;
   }
+  else if ( mIsViewCameraMode )
+  {
+    const math::ivec2 screenPos( event.GetX(), event.GetY() );
+    const math::vec2 worldPos( mGLCanvas->ScreenToWorld( screenPos ) );
+    const math::ivec2 imagePos( mGLCanvas->WorldToImage( worldPos ) );
+
+    const math::vec2 mouse_delta( worldPos - mGLCanvas->ScreenToWorld( mPreviousMouseScreenPosition ) );
+
+    mGLCanvas->Camera()->Translate( math::vec3( mouse_delta, 0.0f ) );
+
+    mPreviousMouseScreenPosition = screenPos;
+    mGLCanvas->UpdateTextureAndRefresh();
+  }
 }
 
-void MainFrame::OnMouseLeftDown( wxMouseEvent& event )
+void MainFrame::OnMouseWheel( wxMouseEvent& event )
 {
+  const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
+                              , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
+  screenPos;
+
+  const float scaleFactor( 0.1f );
+  const float scale( event.GetWheelRotation() < 0 ? 1.0f - scaleFactor : 1.0f + scaleFactor );
+
+  const math::vec2 screenFocusPoint( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
+  const math::vec2 worldFocusPoint( mGLCanvas->ScreenToWorld( screenFocusPoint ) );
+
+  mGLCanvas->Camera()->Translate( math::vec3( worldFocusPoint, 0.0f ) );
+  mGLCanvas->Camera()->Scale( math::vec3( scale, scale, 1.0f ) );
+  mGLCanvas->Camera()->Translate( math::vec3( -worldFocusPoint, 0.0f ) );
+
+  mGLCanvas->UpdateTextureAndRefresh();
+}
+
+void MainFrame::OnMouseRightDown( wxMouseEvent& event )
+{
+  const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
+                              , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
+  screenPos;
+}
+
+void MainFrame::OnMouseRightUp( wxMouseEvent& event )
+{
+  const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
+                              , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
+  screenPos;
+}
+
+void MainFrame::OnMouseMiddleDown( wxMouseEvent& event )
+{
+  const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
+                              , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
+  screenPos;
+
   mPreviousMouseScreenPosition = math::vec2( static_cast<float>( event.GetX() ), static_cast<float>( event.GetY() ) );
-  mCameraModeActive = true;
+  mIsViewCameraMode = true;
 }
 
-void MainFrame::OnMouseLeftUp( wxMouseEvent& /*event*/ )
+void MainFrame::OnMouseMiddleUp( wxMouseEvent& event )
 {
-  mCameraModeActive = false;
-}
-
-void MainFrame::OnMouseLeave( wxMouseEvent& /*event*/ )
-{
-  mCameraModeActive = false;
+  mIsViewCameraMode = false;
+  const math::vec2 screenPos( event.ControlDown() ? mPreviousMouseScreenPosition.x : event.GetX()
+                              , event.ShiftDown() ? mPreviousMouseScreenPosition.y : event.GetY() );
+  screenPos;
 }
 
 void MainFrame::OnShow( wxShowEvent& event )
