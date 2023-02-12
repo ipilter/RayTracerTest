@@ -64,5 +64,4 @@ void RayTracer::SetFinishedCallback( rt::CallBackFunction callback )
   mImpl->SetFinishedCallback( callback );
 }
 
-
 }

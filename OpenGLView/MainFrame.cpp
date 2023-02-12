@@ -53,6 +53,7 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
 
   // Parameters
+  // TODO Do not forget to update InitializeUIElements as well! This solution is ugly
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
                                                       , 100.0f, 1.0f, 1000.0f
                                                       , 1.0f, 100000.0f ) );
