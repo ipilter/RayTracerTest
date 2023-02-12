@@ -186,6 +186,9 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
         // wait for the scheduled commands to be executed
         cudaDeviceSynchronize();
 
+        //std::vector<uint32_t> ha( mBufferSize.x * mBufferSize.y, 0 );
+        //rt::CopyDeviceDataToHost( mSampleCountBuffer, &ha.front(), mBufferSize.x * mBufferSize.y );
+
         // run render -> image conversion
         err = RunConverterKernel();
         if ( err != cudaSuccess )
@@ -210,6 +213,11 @@ __host__ void RayTracerImpl::TraceFunct( const uint32_t iterationCount
 
     // wait for the scheduled commands to be executed
     cudaDeviceSynchronize();
+
+    //std::vector<uint32_t> ha( mBufferSize.x * mBufferSize.y, 0 );
+    //rt::CopyDeviceDataToHost( mSampleCountBuffer, &ha.front(), mBufferSize.x * mBufferSize.y );
+    //auto idx = ( mBufferSize.x * mBufferSize.y ) - 1;
+    //auto elem = ha[0];
 
     // run render -> image conversion
     err = RunConverterKernel();

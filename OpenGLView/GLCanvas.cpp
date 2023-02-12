@@ -125,6 +125,7 @@ void GLCanvas::UpdatePBO( rt::ColorPtr deviceImageBuffer, std::size_t deviceImag
   const bool ok = deviceImageBuffer != nullptr && pboSize == deviceImageBufferSize;
   if ( ok )
   {
+    // TODO use common cuda data handler methods, like rt::CopyDeviceDataToHost
     err = cudaMemcpy( pixelBufferPtr, deviceImageBuffer, deviceImageBufferSize, cudaMemcpyDeviceToDevice);
     if ( err != cudaSuccess )
     {

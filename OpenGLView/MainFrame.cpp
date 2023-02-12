@@ -175,9 +175,9 @@ void MainFrame::InitializeUIElements()
     // Parameter connections
     auto cameraParameterCallback = [this]()
     {
-      const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
-      const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
-      const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
+      const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
+      const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[6]->GetValue().utf8_str() ) ) );
+      const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[7]->GetValue().utf8_str() ) ) );
       mRayTracer->SetCameraParameters( fov, focalLength, aperture );
       
       RequestTrace();
@@ -185,9 +185,11 @@ void MainFrame::InitializeUIElements()
 
     // User interaction callbacks
     mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
-    mParameterControls[3]->SetOnMouseWheelCallback( cameraParameterCallback );
-    mParameterControls[4]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls[3]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
+    mParameterControls[4]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
     mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls[6]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls[7]->SetOnMouseWheelCallback( cameraParameterCallback );
 
     // Ray tracer callbacks 
     // these will be called by the rendering thread
@@ -328,6 +330,7 @@ void MainFrame::OnSaveButton( wxCommandEvent& /*event*/ )
 
 void MainFrame::OnLogMessage( const std::string& msg )
 {
+  // TODO: If logger called from other thread, this will be called which is bad! Prevent this happening. No log from other thread for now.
   mLogTextBox->WriteText( msg );
 }
 
