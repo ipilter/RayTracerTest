@@ -176,9 +176,9 @@ void MainFrame::InitializeUIElements()
     // Parameter connections
     auto cameraParameterCallback = [this]()
     {
-      const float fov( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
-      const float focalLength( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[6]->GetValue().utf8_str() ) ) );
-      const float aperture( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[7]->GetValue().utf8_str() ) ) );
+      const float fov( util::FromString<float>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
+      const float focalLength( util::FromString<float>( static_cast<const char*>( mParameterControls[6]->GetValue().utf8_str() ) ) );
+      const float aperture( util::FromString<float>( static_cast<const char*>( mParameterControls[7]->GetValue().utf8_str() ) ) );
       mRayTracer->SetCameraParameters( fov, focalLength, aperture );
       
       RequestTrace();

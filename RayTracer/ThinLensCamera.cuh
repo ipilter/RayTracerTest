@@ -111,9 +111,7 @@ private:
   __host__ __device__ Ray PinHoleRay( const math::uvec2& pixel
                                       , const math::uvec2& dimensions ) const
   {
-    const float max( static_cast<float>( glm::min( dimensions.x, dimensions.y ) ) );
-    const float min( static_cast<float>( glm::max( dimensions.x, dimensions.y ) ) );
-    const float aspectRatio( max / min );
+    const float aspectRatio( dimensions.x / static_cast<float>( dimensions.y ) );
     const float halfHeight( glm::tan( mFov / 2.0f ) );
 
     const math::vec2 normalizedPixel( ( pixel.x + 0.5f ) / dimensions.x
