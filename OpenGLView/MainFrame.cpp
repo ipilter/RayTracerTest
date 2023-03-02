@@ -173,24 +173,13 @@ void MainFrame::InitializeUIElements()
     Bind( wxEVT_MIDDLE_DOWN, &MainFrame::OnMouseMiddleDown, this );
     Bind( wxEVT_MIDDLE_UP, &MainFrame::OnMouseMiddleUp, this );
 
-    // Parameter connections
-    auto cameraParameterCallback = [this]()
-    {
-      const float fov( util::FromString<float>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
-      const float focalLength( util::FromString<float>( static_cast<const char*>( mParameterControls[6]->GetValue().utf8_str() ) ) );
-      const float aperture( util::FromString<float>( static_cast<const char*>( mParameterControls[7]->GetValue().utf8_str() ) ) );
-      mRayTracer->SetCameraParameters( fov, focalLength, aperture );
-      
-      RequestTrace();
-    };
-
     // User interaction callbacks
     mParameterControls[2]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
     mParameterControls[3]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
     mParameterControls[4]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
-    mParameterControls[5]->SetOnMouseWheelCallback( cameraParameterCallback );
-    mParameterControls[6]->SetOnMouseWheelCallback( cameraParameterCallback );
-    mParameterControls[7]->SetOnMouseWheelCallback( cameraParameterCallback );
+    mParameterControls[5]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
+    mParameterControls[6]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
+    mParameterControls[7]->SetOnMouseWheelCallback( [this]() { RequestTrace(); } );
 
     // Ray tracer callbacks 
     // these will be called by the rendering thread
@@ -211,10 +200,14 @@ void MainFrame::RequestTrace()
   logger::Logger::Instance() << "MainFrame::RequestTrace\n";
   try
   {
+    const float fov( util::FromString<float>( static_cast<const char*>( mParameterControls[5]->GetValue().utf8_str() ) ) );
+    const float focalLength( util::FromString<float>( static_cast<const char*>( mParameterControls[6]->GetValue().utf8_str() ) ) );
+    const float aperture( util::FromString<float>( static_cast<const char*>( mParameterControls[7]->GetValue().utf8_str() ) ) );
+    mRayTracer->SetCameraParameters( fov, focalLength, aperture );
+
     const uint32_t sampleCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[2]->GetValue().utf8_str() ) ) );
     const uint32_t iterationCount( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[3]->GetValue().utf8_str() ) ) );
     const uint32_t updateInterval( util::FromString<uint32_t>( static_cast<const char*>( mParameterControls[4]->GetValue().utf8_str() ) ) );
-
     mRayTracer->Trace( iterationCount
                        , sampleCount
                        , updateInterval );
