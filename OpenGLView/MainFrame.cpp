@@ -73,10 +73,10 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                                                       , 1.0f, 0.1f, 5.0f
                                                       , 1.0f, 179.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
-                                                      , 10.0f, 1.0f, 50.0f
-                                                      , 1.0f, 10000.0f ) );
+                                                      , 1.0f, 0.1f, 5.0f
+                                                      , 1.0f, 1000.0f ) );
   mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
-                                                      , 1.0f, 0.1f, 2.0f
+                                                      , 0.5f, 0.1f, 1.0f
                                                       , 0.0f, 22.0f ) ); // min == 0 = pinhole
 
   // Buttons

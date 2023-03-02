@@ -17,8 +17,8 @@ App::App()
   , mCameraPosition( 0.0f, 0.0f, 0.0f )
   , mCameraAngles( 0.0f, 0.0f )
   , mFov( 70.0f )
-  , mFocalLength( 50.0f )
-  , mAperture( 0.1f )
+  , mFocalLength( 10.0f )
+  , mAperture( 4.0f )
   , mAnglesPerAxes( 180.0f, 180.0f )
 {}
 
