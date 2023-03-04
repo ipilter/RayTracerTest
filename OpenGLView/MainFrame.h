@@ -11,6 +11,9 @@
 
 class MainFrame : public wxFrame, public virtual ISptr<MainFrame>
 {
+  using ControlInitialParameters = std::tuple<std::string, uint32_t, float, float, float, float, float>;
+  using ControlInitialParametersList = std::list<ControlInitialParameters>;
+
 public:
   MainFrame( const math::uvec2& imageSize
              , const uint32_t sampleCount
@@ -33,7 +36,7 @@ public:
   void TracerFinishedCallback( rt::ColorPtr deviceImageBuffer, const std::size_t size );
 
 private:
-  void InitializeUIElements();
+  void InitializeUIElements( const ControlInitialParametersList& parameters );
   void RequestTrace();
   
   void OnResizeButton( wxCommandEvent& event );

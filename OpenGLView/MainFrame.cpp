@@ -52,48 +52,16 @@ MainFrame::MainFrame( const math::uvec2& imageSize
   // attach this object to the logger. Any log message sent to the log will propagated to the OnLogMessage callback
   logger::Logger::Instance().SetMessageCallback( std::bind( &MainFrame::OnLogMessage, this, std::placeholders::_1 ) );
 
-  // Parameters
-  // TODO Do not forget to update InitializeUIElements as well! This solution is ugly
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Width", util::ToString( imageSize.x )
-                                                      , 100.0f, 1.0f, 1000.0f
-                                                      , 1.0f, 100000.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Height", util::ToString( imageSize.y )
-                                                      , 100.0f, 1.0f, 1000.0f
-                                                      , 1.0f, 100000.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Samples", util::ToString( sampleCount )
-                                                      , 1.0f, 1.0f, 100.0f
-                                                      , 1.0f, 10000.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Iterations", util::ToString( iterationCount )
-                                                      , 1.0f, 1.0f, 10.0f
-                                                      , 1.0f, 1000.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Updates", util::ToString( updateInterval )
-                                                      , 1.0f, 1.0f, 10.0f
-                                                      , 1.0f, 1000.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Fov", util::ToString( fov )
-                                                      , 1.0f, 0.1f, 5.0f
-                                                      , 1.0f, 179.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Focal l.", util::ToString( focalLength )
-                                                      , 1.0f, 0.1f, 5.0f
-                                                      , 1.0f, 1000.0f ) );
-  mParameterControls.push_back( new NamedTextControl( mControlPanel, wxID_ANY, "Aperture", util::ToString( aperture )
-                                                      , 0.5f, 0.1f, 1.0f
-                                                      , 0.0f, 22.0f ) ); // min == 0 = pinhole
 
-  // Buttons
-  mButtons.push_back( std::make_pair( "Trace", 
-                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Trace" )
-                                                      , std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) ) ) );
-  mButtons.push_back( std::make_pair( "Stop", 
-                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" )
-                                                      , std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ) ) ) );
-  mButtons.push_back( std::make_pair( "Resize", 
-                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Resize" )
-                                                      , std::bind( &MainFrame::OnResizeButton, this, std::placeholders::_1 ) ) ) );
-  mButtons.push_back( std::make_pair( "Save", 
-                                      std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" )
-                                                      , std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) ) ) );
-
-  InitializeUIElements();
+  const auto wUIItemParameters = ControlInitialParametersList( { ControlInitialParameters( "Width",      imageSize.x,    100.0f, 1.0f, 1000.0f, 1.0f, 100000.0f )
+                                                               , ControlInitialParameters( "Height",     imageSize.y,    100.0f, 1.0f, 1000.0f, 1.0f, 100000.0f )
+                                                               , ControlInitialParameters( "Samples",    sampleCount,    1.0f,   1.0f, 100.0f,  1.0f, 10000.0f )
+                                                               , ControlInitialParameters( "Iterations", iterationCount, 1.0f,   1.0f, 10.0f,   1.0f, 1000.0f )
+                                                               , ControlInitialParameters( "Updates",    updateInterval, 1.0f,   1.0f, 10.0f,   1.0f, 1000.0f )
+                                                               , ControlInitialParameters( "Fov",        fov,            1.0f,   0.1f, 5.0f,    1.0f, 179.0f )
+                                                               , ControlInitialParameters( "Focal length",   focalLength,    1.0f,   0.1f, 5.0f,    1.0f, 1000.0f )
+                                                               , ControlInitialParameters( "Aperture",   aperture,       0.5f,   0.1f, 1.0f,    0.0f, 22.0f ) } );
+  InitializeUIElements( wUIItemParameters );
 }
 
 MainFrame::~MainFrame()
@@ -122,10 +90,40 @@ void MainFrame::TracerFinishedCallback( rt::ColorPtr deviceImageBuffer, const st
   wxPostEvent( this, wxCommandEvent( wxEVT_TRACER_FINISHED ) );
 }
 
-void MainFrame::InitializeUIElements()
+void MainFrame::InitializeUIElements( const ControlInitialParametersList& uiParameters )
 {
   try
   {
+    // Parameters
+    // TODO Do not forget to update InitializeUIElements as well! This solution is ugly
+
+    for ( const auto& params : uiParameters )
+    {
+      mParameterControls.push_back( new NamedTextControl( mControlPanel
+                                                          , wxID_ANY
+                                                          , std::get<0>( params )
+                                                          , util::ToString( std::get<1>( params ) )
+                                                          , std::get<2>( params )
+                                                          , std::get<3>( params )
+                                                          , std::get<4>( params )
+                                                          , std::get<5>( params )
+                                                          , std::get<6>( params )
+      ) );
+    }
+                                                                           // Buttons
+    mButtons.push_back( std::make_pair( "Trace", 
+                                        std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Trace" )
+                                                        , std::bind( &MainFrame::OnRenderButton, this, std::placeholders::_1 ) ) ) );
+    mButtons.push_back( std::make_pair( "Stop", 
+                                        std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Stop" )
+                                                        , std::bind( &MainFrame::OnStopButton, this, std::placeholders::_1 ) ) ) );
+    mButtons.push_back( std::make_pair( "Resize", 
+                                        std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Resize" )
+                                                        , std::bind( &MainFrame::OnResizeButton, this, std::placeholders::_1 ) ) ) );
+    mButtons.push_back( std::make_pair( "Save", 
+                                        std::make_pair( new wxButton( mControlPanel, wxID_ANY, "Save" )
+                                                        , std::bind( &MainFrame::OnSaveButton, this, std::placeholders::_1 ) ) ) );
+
     // Place it on the screen center
     CenterOnScreen();
 
