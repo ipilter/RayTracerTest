@@ -54,6 +54,11 @@ void RayTracer::RotateCamera( const math::vec2& angles )
   mImpl->RotateCamera( angles );
 }
 
+void RayTracer::UploadScene( const std::vector<float4>& hostData )
+{
+  mImpl->UploadScene( hostData );
+}
+
 void RayTracer::SetUpdateCallback( rt::CallBackFunction callback )
 {
   mImpl->SetUpdateCallback( callback );

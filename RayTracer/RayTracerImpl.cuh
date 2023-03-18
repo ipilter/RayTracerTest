@@ -34,6 +34,8 @@ public:
                             , const float focalLength
                             , const float aperture );
   void RotateCamera( const math::vec2& angles );
+  void UploadScene( const std::vector<float4>& hostData );
+
   void SetUpdateCallback( rt::CallBackFunction callback );
   void SetFinishedCallback( rt::CallBackFunction callback );
 
@@ -60,6 +62,11 @@ private:
 
   curandState_t* mRandomStates; // TODO no raw ptr
   std::unique_ptr<rt::ThinLensCamera> mCamera;
+
+  // Scene
+  cudaArray_t mSceneTrianglesArray;
+  cudaTextureObject_t mSceneTrianglesTextureObject;
+  uint32_t mNumberOfTriangles;
 
   std::atomic<bool> mStopped;
   rt::CallBackFunction mUpdateCallback;

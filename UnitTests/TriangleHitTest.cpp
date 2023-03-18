@@ -54,7 +54,7 @@ private:
 // tests of a given ray hits the given triangle <v0, v1, v2>
 // return true if hit occours and sets t, u, v values
 // if false is returned, t, u, v meaningless
-bool Hit( const Ray& ray
+bool HitTriangle( const Ray& ray
           , const math::vec3& v0
           , const math::vec3& v1
           , const math::vec3& v2
@@ -185,7 +185,7 @@ TEST( TestCaseName, hit_at_vtx_a )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  ASSERT_TRUE( Hit( r, a, b, c, t, u, v ) );
+  ASSERT_TRUE( HitTriangle( r, a, b, c, t, u, v ) );
 
   const math::vec3 n( glm::normalize( glm::cross( b - a, c - a ) ) );
   ASSERT_EQ( n, math::vec3( 0.0f, 0.0f, 1.0f ) );
@@ -210,7 +210,7 @@ TEST( TestCaseName, hit_triangle_edge )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  ASSERT_TRUE( Hit( r, a, b, c, t, u, v ) );
+  ASSERT_TRUE( HitTriangle( r, a, b, c, t, u, v ) );
 
   const math::vec3 n( glm::normalize( glm::cross( b - a, c - a ) ) );
   ASSERT_EQ( n, math::vec3( 0.0f, 0.0f, 1.0f ) );
@@ -235,7 +235,7 @@ TEST( TestCaseName, miss_opposite_direction )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  EXPECT_FALSE( Hit( r, a, b, c, t, u, v ) );
+  EXPECT_FALSE( HitTriangle( r, a, b, c, t, u, v ) );
 }
 
 // ray from 1,1,0 towards 0,0,-1 hits triangle's plane but misses the triangle
@@ -254,7 +254,7 @@ TEST( TestCaseName, miss_out_of_triangle )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  EXPECT_FALSE( Hit( r, a, b, c, t, u, v ) );
+  EXPECT_FALSE( HitTriangle( r, a, b, c, t, u, v ) );
 }
 
 // ray from close to origin towards 0,0,-1 hits triangle's plane but misses the triangle
@@ -273,7 +273,7 @@ TEST( TestCaseName, miss_vtx_a_below_x )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  EXPECT_FALSE( Hit( r, a, b, c, t, u, v ) );
+  EXPECT_FALSE( HitTriangle( r, a, b, c, t, u, v ) );
 }
 
 // ray from close to origin towards 0,0,-1 hits triangle's plane but misses the triangle
@@ -292,7 +292,7 @@ TEST( TestCaseName, miss_vtx_a_below_y )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  EXPECT_FALSE( Hit( r, a, b, c, t, u, v ) );
+  EXPECT_FALSE( HitTriangle( r, a, b, c, t, u, v ) );
 }
 
 // 
@@ -311,7 +311,7 @@ TEST( TestCaseName, miss_towards_positive_z )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  EXPECT_FALSE( Hit( r, a, b, c, t, u, v ) );
+  EXPECT_FALSE( HitTriangle( r, a, b, c, t, u, v ) );
 }
 
 // 
@@ -330,7 +330,7 @@ TEST( TestCaseName, hit_towards_positive_z )
   ASSERT_TRUE( vp.triangle( tri, a, b, c ) );
 
   float t( 0.0f ), u( 0.0f ), v( 0.0f );
-  EXPECT_TRUE( Hit( r, a, b, c, t, u, v ) );
+  EXPECT_TRUE( HitTriangle( r, a, b, c, t, u, v ) );
 
   const math::vec3 n( glm::normalize( glm::cross( b - a, c - a ) ) );
   ASSERT_EQ( n, math::vec3( 0.0f, 0.0f, -1.0f ) );

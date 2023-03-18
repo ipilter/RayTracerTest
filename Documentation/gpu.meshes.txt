@@ -1,0 +1,34 @@
+using 2D and 3D meshes to store an OctTree and to
+
+Create an OctTree using a 3D texture;
+Fastly traverse the OctTree by exploiting the filtering properties of the 3D texture;
+Storing the surface polygons by a 2D texture.
+	https://github.com/SimronThapa/GPU-path-tracing-tutorial-3
+
+	https://stackoverflow.com/questions/21197349/using-cuda-textures-to-store-2d-surfaces
+	https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-2/blob/master/tutorial2_cuda_pathtracer.cu
+	https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4/blob/master/renderkernel.cu
+
+	with latest cuda:
+	https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#texture-object-api
+
+
+only triangles: v0,v1,v2 -> v0,e0,e1 (e0=v1-v0,e1=v2-v0)
+memory layout:  float4,float4,float4 -> 16*3=48bytes/Triangle (v0.x,v0.y,v0.z,[0.0|packed v0 normal],e0.x,e0.y,e0.z,[0.0|packed v1 normal],e1.x,e1.y,e1.z,[0.0|packed v2 normal]
+indices: 0.th=0, 1.th=0+3*sizeof(float4), ...
+
+
+float pack(const vec3& normal)
+{
+	return floorf(normal.x * 127.0f + 127.5f) / 256.0f +		// 2^8
+		   floorf(normal.y * 127.0f + 127.5f) / 65'536.0f +		// 2^16
+		   floorf(normal.z * 127.0f + 127.5f) / 16'777'216.0f +	// 2^24
+}
+
+vec3 unpack(const float packedNormal)
+{
+	const float OneOver127 = 1.0f / 127.0f;
+	return vec3(floor(frac(packedNormal * 1.0f) * 256.0f) * OneOver127 - 1.0f,
+		        floor(frac(packedNormal * 65'536.0f) * 256.0f) * OneOver127 - 1.0f,
+		        floor(frac(packedNormal * 16'777'216.0f) * 256.0f) * OneOver127 - 1.0f);
+}

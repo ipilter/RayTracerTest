@@ -3,23 +3,36 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <curand_kernel.h>
+#include <texture_fetch_functions.h>
 
 #include "Common\Math.h"
 #include "Common\Color.h"
 
 #include "ThinLensCamera.cuh"
-#include <thrust/device_vector.h>
 
 namespace rt
 {
 
-__host__ __device__ bool Hit( const Ray& ray
-                              , const math::vec3& v0
-                              , const math::vec3& v1
-                              , const math::vec3& v2
-                              , float& t
-                              , float& u
-                              , float& v )
+__device__ float abs( float f )
+{
+  return (f < 0.0f) ? -f : f;
+}
+
+__device__ math::vec3& abs( math::vec3& v )
+{
+  v.x = abs( v.x );
+  v.y = abs( v.y );
+  v.z = abs( v.z );
+  return v;
+}
+
+__device__ bool HitTriangle( const Ray& ray
+                             , const math::vec3& v0
+                             , const math::vec3& v1
+                             , const math::vec3& v2
+                             , float& t
+                             , float& u
+                             , float& v )
 {
   const math::vec3 v0v1( v1 - v0 );
   const math::vec3 v0v2( v2 - v0 );
@@ -51,74 +64,47 @@ __host__ __device__ bool Hit( const Ray& ray
   return true;
 }
 
-// Triangle with a b c vertices
-// create only on device and add ability to get data from host
-// initialize with a big chunk of memory, follow aaa|bbb|ccc order instead of abcabcabc
-class Triangle
+// see https://developer.nvidia.com/blog/accelerated-ray-tracing-cuda/
+__device__ math::vec3 Radiance( const Ray& ray, const math::vec3& background, cudaTextureObject_t sceneTrianglesTextureObject, uint32_t numberOfTriangles )
 {
-public:
-  __host__ __device__ Triangle( const uint64_t* data )
-    : mDataPtr( data )
-  { }
+  math::vec3 ret( background );
 
-  __host__ __device__ const uint64_t& a() const
+  // search for the closest triangle we hit with this ray
+  float distance = -FLT_MAX;
+  math::vec3 ta, tb, tc;
+  for ( uint32_t triangleIdx = 0; triangleIdx < numberOfTriangles; ++triangleIdx )
   {
-    return *mDataPtr;
+    const uint32_t triangleOffset = 3 * triangleIdx;
+    const float4 a4 = tex2D<float4>( sceneTrianglesTextureObject, triangleOffset + 0.0f, 0.0f );
+    const float4 b4 = tex2D<float4>( sceneTrianglesTextureObject, triangleOffset + 1.0f, 0.0f );
+    const float4 c4 = tex2D<float4>( sceneTrianglesTextureObject, triangleOffset + 2.0f, 0.0f );
+    const math::vec3 a( a4.x, a4.y, a4.z ), b( b4.x, b4.y, b4.z ), c( c4.x, c4.y, c4.z );
+
+    float t( 0.0f ), u( 0.0f ), v( 0.0f );
+    if ( HitTriangle( ray, a, b, c, t, u, v ) && distance < t )
+    {
+      distance = t;
+
+      ta = a;
+      tb = b;
+      tc = c;
+    }
   }
 
-  __host__ __device__ const uint64_t& b() const
+  // if we hit a triangle, calculate it's contribution for the final color, return background otherwise
+  if ( distance > -FLT_MAX )
   {
-    return *( mDataPtr + 1 );
+    const math::vec3 n( glm::normalize( glm::cross( tb - ta, tc - ta ) ) );
+    const math::vec3 hitpoint( ray.point( distance ) );
+    ret = glm::abs( n );
+  }
+  else
+  {
+    ret = background * 0.8f + ray.direction() * 0.2f;
   }
 
-  __host__ __device__ const uint64_t& c() const
-  {
-    return *( mDataPtr + 2 );
-  }
-
-private:
-  const uint64_t* mDataPtr; // TODO use mData, mData+1, mData+2 as a,b,c but nicer than this
-};
-
-// create only on device and add ability to get data from host
-// initialize with a big chunk of memory, follow xxx|yyy|zzz order instead of xyzxyzxyz
-//
-// data layout:
-// [x0,y0,z0][x1,y1,z1]..[xN,yN,zN]
-class VertexPool
-{
-public:
-  __host__ __device__ VertexPool( const float* data )
-    : mDataPtr( data )
-  { }
-
-  __host__ __device__ bool triangle( const Triangle& triangle, math::vec3& a, math::vec3& b, math::vec3& c ) const
-  {
-    a = math::vec3( x( triangle.a() ), y( triangle.a() ), z( triangle.a() ) );
-    b = math::vec3( x( triangle.b() ), y( triangle.b() ), z( triangle.b() ) );
-    c = math::vec3( x( triangle.c() ), y( triangle.c() ), z( triangle.c() ) );
-    return true;
-  }
-
-private:
-  __host__ __device__ const float& x( const uint64_t& idx ) const 
-  {
-    return *( mDataPtr + idx * 3 );
-  }
-
-  __host__ __device__ const float& y( const uint64_t& idx ) const
-  {
-    return *( mDataPtr + (idx * 3) + 1);
-  }
-
-  __host__ __device__ const float& z( const uint64_t& idx ) const
-  {
-    return *( mDataPtr + (idx * 3) + 2);
-  }
-
-private:
-  const float* mDataPtr;
-};
+  return ret;
+}
 
 // Note: arguments MUST be by value or by pointer. Pointer MUST be in device mem space
 __global__ void TraceKernel( float* renderBuffer
@@ -127,7 +113,9 @@ __global__ void TraceKernel( float* renderBuffer
                              , const uint32_t channelCount
                              , rt::ThinLensCamera camera
                              , const uint32_t sampleCount
-                             , curandState_t* randomStates )
+                             , curandState_t* randomStates
+                             , cudaTextureObject_t sceneTrianglesTextureObject
+                             , uint32_t numberOfTriangles )
 {
   using namespace math;
 
@@ -141,40 +129,12 @@ __global__ void TraceKernel( float* renderBuffer
   const uint32_t valueOffset( channelCount * pixel.x + pixel.y * bufferSize.x * channelCount );
 
   curandState_t randomState = randomStates[pixelOffset]; // for faster performance we make a copy in the fast memory, save it later
-
-
-  math::vec3 background( 0.1f, 0.1f, 0.15f );
-  
-  const float vertices[] = {0.0f, 0.0f, 10.0f,  1.0f, 0.0f, 10.0f,  0.0f, 1.0f, 10.0f};
-
-  VertexPool vertexPool( vertices );
-  const uint64_t triangleData[] = { 0, 2, 1 };
-  Triangle trianglePool[] = { Triangle( triangleData ) };
-
+  const math::vec3 background( 0.15f, 0.11f, 0.13f );
   math::vec3 accu( 0.0f );
   for ( auto s( 0 ); s < sampleCount; ++s )
   {
     const rt::Ray ray( camera.GetRay( pixel, bufferSize, randomState ) );
-
-    math::vec3 a, b, c;
-    vertexPool.triangle( trianglePool[0], a, b, c );
-
-    float t( 0.0f ), u( 0.0f ), v( 0.0f );
-    const bool hit = Hit( ray, a, b, c, t, u, v );
-    if ( hit )
-    {
-      const math::vec3 n( glm::normalize( glm::cross( b - a, c - a ) ) );
-      const math::vec3 hitpoint( ray.point( t ) );
-
-      const math::vec3 color = glm::abs( n );
-
-      accu += color;
-    }
-    else
-    {
-      accu += ray.direction() * 0.2f;
-      //accu += background;
-    }
+    accu += Radiance( ray, background, sceneTrianglesTextureObject, numberOfTriangles);
   }
 
   sampleCountBuffer[pixelOffset] += sampleCount;

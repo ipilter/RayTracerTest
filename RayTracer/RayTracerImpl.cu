@@ -27,6 +27,8 @@ RayTracerImpl::RayTracerImpl( const math::uvec2& imageSize
   , mRandomStates( nullptr )
   , mCamera( new rt::ThinLensCamera( cameraPosition, cameraAngles, fov, focalLength, aperture ) )
   , mStopped( false )
+  , mSceneTrianglesArray( 0 )
+  , mSceneTrianglesTextureObject( 0 )
 {
   try
   {
@@ -51,6 +53,14 @@ RayTracerImpl::~RayTracerImpl()
   {
     mThread.join();
   }
+
+  // delete texture object
+  cudaError_t ret = cudaDestroyTextureObject( mSceneTrianglesTextureObject );
+  mSceneTrianglesTextureObject = 0;
+
+  // delete device data
+  ret = cudaFreeArray( mSceneTrianglesArray );
+  mSceneTrianglesArray = 0;
 
   // TODO free temporary image buffer - storage of converted image pixels (RGBA)
   ReleaseBuffers();
@@ -106,6 +116,66 @@ void RayTracerImpl::RotateCamera( const math::vec2& angles )
   mCamera->Rotate( angles );
 }
 
+void RayTracerImpl::UploadScene( const std::vector<float4>& hostData )
+{
+  if ( hostData.size() < 3ull || hostData.size() % 3ull != 0ull )
+  {
+    logger::Logger::Instance() << "UploadScene got invalid triangle list. Size = " << hostData.size() << ", " << "\n";
+    return;
+  }
+
+  cudaError_t ret = cudaSuccess;
+  if ( mSceneTrianglesTextureObject != 0 )
+  {
+    // delete texture object
+    ret = cudaDestroyTextureObject( mSceneTrianglesTextureObject );
+    mSceneTrianglesTextureObject = 0;
+
+    // delete device data
+    ret = cudaFreeArray( mSceneTrianglesArray );
+    mSceneTrianglesArray = 0;
+  }
+
+  mNumberOfTriangles = static_cast<uint32_t>( hostData.size() / 3 );
+
+  // the scene triangles are stored in a 1D CUDA texture of float4 for memory alignment
+  // store two edges instead of vertices
+  // each triangle (v0,v1,v2) is stored as three float4s: v0, v1-v0, v2-v0 (one vertex and two edges connecting tho that edge)
+
+  // prepare device memory and copy data
+  {
+    // format
+    cudaChannelFormatDesc channelDesc( cudaCreateChannelDesc<float4>() );
+
+    // allocate memory
+    const size_t width = mNumberOfTriangles * 3;
+    size_t arraySize = width * sizeof( float4 ); // bytes
+    ret = cudaMallocArray( &mSceneTrianglesArray, &channelDesc, arraySize );
+
+    // copy 1D array to device
+    const size_t spitch = width * sizeof(float4); // bytes of width
+    ret = cudaMemcpy2DToArray( mSceneTrianglesArray, 0, 0, &hostData.front(), spitch, arraySize, 1, cudaMemcpyHostToDevice );
+  }
+
+  // create texture object
+  {
+    // specify resource parameters
+    cudaResourceDesc resDesc;
+    memset( &resDesc, 0, sizeof( cudaResourceDesc ) );
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = mSceneTrianglesArray;
+
+    // specify texture object parameters
+    cudaTextureDesc texDesc;
+    memset( &texDesc, 0, sizeof( cudaTextureDesc ) );
+    texDesc.addressMode[0] = cudaAddressModeClamp;
+    texDesc.filterMode = cudaFilterModePoint;
+    texDesc.readMode = cudaReadModeElementType;
+
+    ret = cudaCreateTextureObject( &mSceneTrianglesTextureObject, &resDesc, &texDesc, NULL );
+  }
+}
+
 void RayTracerImpl::SetUpdateCallback( rt::CallBackFunction callback )
 {
   mUpdateCallback = callback;
@@ -150,7 +220,9 @@ cudaError_t RayTracerImpl::RunTraceKernel( const uint32_t sampleCount )
                                                     , ChannelCount()
                                                     , *mCamera
                                                     , sampleCount
-                                                    , mRandomStates );
+                                                    , mRandomStates
+                                                    , mSceneTrianglesTextureObject
+                                                    , mNumberOfTriangles);
 
   cudaEventRecord( stop, 0 );
   cudaEventSynchronize( stop ); // TODO: make this switchable (on/off)

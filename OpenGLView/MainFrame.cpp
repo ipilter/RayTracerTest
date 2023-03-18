@@ -7,7 +7,9 @@
 #include <functional>
 #include <filesystem>
 
+#include <cuda_runtime.h>
 #include <cudart_platform.h>
+#include <vector_types.h>
 
 #include "MainFrame.h"
 #include "RayTracer\RayTracer.h"
@@ -62,6 +64,39 @@ MainFrame::MainFrame( const math::uvec2& imageSize
                                                                , ControlInitialParameters( "Focal length",   focalLength,    1.0f,   0.1f, 5.0f,    1.0f, 1000.0f )
                                                                , ControlInitialParameters( "Aperture",   aperture,       0.5f,   0.1f, 1.0f,    0.0f, 22.0f ) } );
   InitializeUIElements( wUIItemParameters );
+
+  cudaDeviceProp prop = {0};
+  cudaError_t err = cudaGetDeviceProperties( &prop, 0 );
+  if ( err != cudaSuccess )
+  {
+    logger::Logger::Instance() << "cudaGetDeviceProperties failed" << "\n";
+    return;
+  }
+
+  logger::Logger::Instance() << "GPU info:" << "\n"
+    << "name: " << prop.name << "\n"
+    << "totalGlobalMem " << prop.totalGlobalMem << "\n"
+    << "memPitch " << prop.memPitch << "\n"
+    << "maxThreadsPerBlock " << prop.maxThreadsPerBlock << "\n"
+    << "maxThreadsDim " << prop.maxThreadsDim << "\n"
+    << "maxGridSize " << prop.maxGridSize << "\n"
+    << "warpSize " << prop.warpSize << "\n"
+    << "clockRate " << prop.clockRate << "\n"
+    << "textureAlignment " << prop.textureAlignment << "\n"
+    << "texturePitchAlignment " << prop.texturePitchAlignment << "\n"
+    << "multiProcessorCount " << prop.multiProcessorCount << "\n"
+    << "sharedMemPerMultiprocessor " << prop.sharedMemPerMultiprocessor << "\n"
+    << "sharedMemPerBlock " << prop.sharedMemPerBlock << "\n"
+    << "regsPerMultiprocessor " << prop.regsPerMultiprocessor << "\n"
+    << "regsPerBlock " << prop.regsPerBlock << "\n"
+    << "maxTexture1D " << prop.maxTexture1D << "\n"
+    << "maxTexture2D " << prop.maxTexture2D << "\n"
+    << "maxTexture3D " << prop.maxTexture3D << "\n"
+    << "memoryClockRate " << prop.memoryClockRate << "\n"
+    << "memoryBusWidth " << prop.memoryBusWidth << "\n"
+    << "l2CacheSize " << prop.l2CacheSize << "\n"
+    << "major " << prop.major << "\n"
+    << "minor; " << prop.minor << "\n";
 }
 
 MainFrame::~MainFrame()
@@ -186,6 +221,16 @@ void MainFrame::InitializeUIElements( const ControlInitialParametersList& uiPara
     // these will be called by the UI thread
     Bind( wxEVT_TRACER_UPDATE, std::bind( &MainFrame::OnTracerUpdate, this ) );
     Bind( wxEVT_TRACER_FINISHED, std::bind( &MainFrame::OnTracerFinished, this ) );
+
+    ////////////////////////////////////////////////////
+    // TODO not here but later when everything is set up
+    // 3 float4 / triangle: [ax,ay,az,an],[bx,by,bz,bn],[cx,cy,cz,cn] || [ax,ay-ax,az-x,an]?
+    
+    //std::vector<float4> hostData { make_float4( -0.5f, 0.5f, 10.0f, 0.3f ), make_float4( 0.5f, 0.5f, 10.0f, 0.5f ), make_float4( 0.0f, -0.5f, 10.0f, 0.4f ) };
+    std::vector<float4> hostData { make_float4( 0.0f, 0.0f, 10.0f, 1.0f ), make_float4( 0.0f, 1.0f, 10.0f, 0.0f ), make_float4( 1.0f, 0.0f, 10.0f, 0.0f ),
+                                   make_float4( 1.0f, 0.0f, 10.0f, 0.0f ), make_float4( 0.0f, 1.0f, 10.0f, 1.0f ), make_float4( 1.0f, 1.0f, 10.0f, 0.0f ),
+                                   make_float4( 0.0f, 1.0f, 10.0f, 0.0f ), make_float4( 0.5f, 1.5f, 10.0f, 0.0f ), make_float4( 1.0f, 1.0f, 10.0f, 1.0f ) };
+    mRayTracer->UploadScene( hostData );
   }
   catch( const std::exception& e )
   {

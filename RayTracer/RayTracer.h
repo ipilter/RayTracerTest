@@ -31,7 +31,8 @@ public:
                             , const float focalLength
                             , const float aperture );
   void RotateCamera( const math::vec2& angles );
-  
+  void UploadScene( const std::vector<float4>& hostData );
+
   void SetUpdateCallback( rt::CallBackFunction callback );
   void SetFinishedCallback( rt::CallBackFunction callback );
 

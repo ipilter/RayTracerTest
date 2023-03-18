@@ -66,6 +66,7 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Include>$(OutDir)includes</Include>
       <AdditionalOptions>--diag-suppress 20012 %(AdditionalOptions)</AdditionalOptions>
+      <MaxRegCount>16</MaxRegCount>
     </CudaCompile>
     <PostBuildEvent>
       <Command>attrib -R $(OutDir)..\includes\$(ProjectName)\*.*
@@ -97,6 +98,7 @@ attrib +R $(OutDir)..\includes\$(ProjectName)\*.*</Command>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Include>$(OutDir)includes</Include>
       <AdditionalOptions>--diag-suppress 20012 %(AdditionalOptions)</AdditionalOptions>
+      <MaxRegCount>16</MaxRegCount>
     </CudaCompile>
     <PostBuildEvent>
       <Command>attrib -R $(OutDir)..\includes\$(ProjectName)\*.*
